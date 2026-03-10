@@ -16,6 +16,17 @@ interface UnitCardProps {
 }
 
 const UnitCard: React.FC<UnitCardProps> = ({ unit, tenant, arrears, onAction, onEdit, onDelete, onEditTenant, onDeleteTenant, userRole, canEdit = true }) => {
+  const getDirectDriveLink = (url: string) => {
+    if (!url) return '';
+    if (url.includes('drive.google.com')) {
+      const fileId = url.match(/[-\w]{25,}/);
+      if (fileId) {
+        return `https://lh3.googleusercontent.com/d/${fileId[0]}`;
+      }
+    }
+    return url;
+  };
+
   const getStatusColor = (status: UnitStatus) => {
     switch (status) {
       case UnitStatus.OCCUPIED: return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -78,17 +89,28 @@ const UnitCard: React.FC<UnitCardProps> = ({ unit, tenant, arrears, onAction, on
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <p className="text-xs text-slate-400 uppercase font-medium mb-1">Penyewa Aktif</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-slate-700">{tenant.name}</p>
-                    {tenant.documentUrl && (
-                      <div className="group/doc relative">
-                        <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        <div className="hidden group-hover/doc:block absolute left-full ml-2 top-0 z-50 w-48 bg-white p-1 rounded-lg shadow-xl border border-slate-200">
-                          <img src={tenant.documentUrl} alt="Dokumen" className="w-full h-auto rounded-md" />
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-slate-700">{tenant.name}</p>
+                      {tenant.documentUrl && (
+                        <div className="group/doc relative">
+                          <button 
+                            onClick={() => {
+                              const directUrl = getDirectDriveLink(tenant.documentUrl);
+                              const win = window.open();
+                              win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
+                            }}
+                            className="p-1 text-indigo-500 hover:bg-indigo-50 rounded-md transition-colors"
+                            title="Lihat Dokumen"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          </button>
+                          <div className="hidden group-hover/doc:block absolute left-full ml-2 top-0 z-50 w-48 bg-white p-1 rounded-lg shadow-xl border border-slate-200">
+                            <img src={getDirectDriveLink(tenant.documentUrl)} alt="Dokumen" className="w-full h-auto rounded-md" />
+                            <div className="text-[10px] text-center text-slate-400 mt-1">Klik untuk lihat full</div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
                   <p className="text-xs text-slate-500">Jatuh tempo: Tgl {tenant.dueDay}</p>
                   {arrears !== undefined && arrears > 0 && (
                      <p className="text-xs text-rose-500 font-medium mt-1">Tunggakan: Rp {arrears.toLocaleString('id-ID')}</p>

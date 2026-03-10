@@ -1643,7 +1643,7 @@ const App: React.FC = () => {
                 value={loginName}
                 onChange={(e) => setLoginName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
-                placeholder="admin"
+                placeholder="Masukkan Nama"
                 required
               />
             </div>
@@ -1654,7 +1654,7 @@ const App: React.FC = () => {
                 value={loginPin}
                 onChange={(e) => setLoginPin(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
-                placeholder="1234"
+                placeholder="Masukkan PIN"
                 required
                 maxLength={6}
               />
@@ -2119,8 +2119,9 @@ const App: React.FC = () => {
                                   {e.proofUrl ? (
                                     <button 
                                       onClick={() => {
+                                        const directUrl = getDirectDriveLink(e.proofUrl);
                                         const win = window.open();
-                                        win?.document.write('<img src="' + e.proofUrl + '" style="max-width:100%; height:auto;">');
+                                        win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
                                       }} 
                                       className="text-indigo-600 hover:text-indigo-800 underline text-xs"
                                     >
