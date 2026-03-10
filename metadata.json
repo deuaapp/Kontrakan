@@ -1,0 +1,7 @@
+{
+  "name": "Manajer Kontrakan Pintar",
+  "description": "Aplikasi manajemen persewaan kontrakan dengan pelacakan pembayaran fleksibel, cicilan, dan asisten AI untuk analisis keuangan.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
