@@ -8,6 +8,7 @@ import StatCard from './components/StatCard';
 import UnitCard from './components/UnitCard';
 import Dropdown from './components/Dropdown';
 import MultiSelectDropdown from './components/MultiSelectDropdown';
+import Logo from './components/Logo';
 
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -1631,9 +1632,10 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm space-y-6">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-indigo-600">KontrakanKu</h1>
-            <p className="text-slate-500 mt-2">Masuk untuk mengelola</p>
+          <div className="text-center flex flex-col items-center">
+            <Logo size="xl" className="mb-2" />
+            <h1 className="text-2xl font-bold text-slate-800">AMG Kontrakan</h1>
+            <p className="text-slate-500 mt-1">Sistem Manajemen Terpadu</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -1673,7 +1675,8 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-300">
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center">
+            <Logo size="xl" variant="colored" className="mb-4" />
             <h1 className="text-2xl font-bold text-slate-800">Selamat Datang, {currentUser?.username}</h1>
             <p className="text-slate-500 mt-2">Pilih aplikasi yang ingin Anda akses</p>
           </div>
@@ -1717,11 +1720,12 @@ const App: React.FC = () => {
     return (
       <div className="h-screen flex bg-slate-50 overflow-hidden font-sans">
         <aside className={`hidden md:flex flex-col bg-slate-900 text-white transition-all duration-300 relative ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-          <div className="p-6 flex items-center justify-between overflow-hidden whitespace-nowrap">
+          <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
+            <Logo size="md" variant="dark" />
             {!isSidebarCollapsed && (
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-emerald-400">Pembukuan</h1>
-                <p className="text-xs text-slate-400 mt-1">Sistem Akuntansi Sederhana</p>
+                <p className="text-xs text-slate-400 mt-1">Sistem Akuntansi AMG</p>
               </div>
             )}
             <button 
@@ -3353,9 +3357,15 @@ const App: React.FC = () => {
   return (
     <div className="h-screen flex bg-slate-50 overflow-hidden">
       {/* Sidebar - Desktop */}
-      <aside className={`hidden md:flex flex-col bg-slate-900 text-white transition-all duration-300 relative ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="p-6 flex items-center justify-between overflow-hidden whitespace-nowrap">
-          {!isSidebarCollapsed && <h1 className="text-xl font-bold tracking-tight text-indigo-400">KontrakanKu</h1>}
+      <aside className={`hidden md:flex flex-col bg-white border-r border-slate-200 transition-all duration-300 relative ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
+          <Logo size="md" variant="colored" />
+          {!isSidebarCollapsed && (
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-indigo-600">Manajer</h1>
+              <p className="text-xs text-slate-500 mt-1">Kontrakan Pintar AMG</p>
+            </div>
+          )}
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors ml-auto"

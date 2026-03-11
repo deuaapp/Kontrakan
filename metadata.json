@@ -1,5 +1,5 @@
 {
-  "name": "Manajer Kontrakan Pintar",
+  "name": "Kontrakan AMG",
   "description": "Aplikasi manajemen persewaan kontrakan dengan pelacakan pembayaran fleksibel, cicilan, dan asisten AI untuk analisis keuangan.",
   "requestFramePermissions": [
     "camera"
