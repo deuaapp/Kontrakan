@@ -59,11 +59,11 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 md:px-4 md:py-2 rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-500 text-sm md:text-base text-left transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2 md:px-4 md:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-indigo-500 text-sm md:text-base text-left transition-colors dark:text-white"
       >
         <span className="truncate mr-2">{getDisplayLabel()}</span>
         <svg 
-          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''} shrink-0`} 
+          className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''} shrink-0`} 
           fill="none" 
           viewBox="0 0 24 24" 
           stroke="currentColor"
@@ -73,11 +73,11 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] max-h-60 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100">
-          <div className="p-2 border-b border-slate-100 sticky top-0 bg-white z-10">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
             <button 
               onClick={handleSelectAll}
-              className="w-full text-left px-2 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="w-full text-left px-2 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
             >
               {value.length === options.length ? 'Hapus Semua' : 'Pilih Semua'}
             </button>
@@ -89,13 +89,13 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                 <button
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
-                  className="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                 >
-                  <span className={isSelected ? 'font-medium text-slate-900' : 'text-slate-600'}>
+                  <span className={isSelected ? 'font-medium text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}>
                     {option.label}
                   </span>
                   {isSelected && (
-                    <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   )}

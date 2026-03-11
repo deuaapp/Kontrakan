@@ -13,12 +13,32 @@ import Logo from './components/Logo';
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('amg_isLoggedIn') === 'true');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('amg_theme') as 'light' | 'dark') || 'light');
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('amg_currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [loginName, setLoginName] = useState('');
   const [loginPin, setLoginPin] = useState('');
   const [loginError, setLoginError] = useState('');
   
+  // Persist login state and theme
+  useEffect(() => {
+    localStorage.setItem('amg_isLoggedIn', isLoggedIn.toString());
+    localStorage.setItem('amg_theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    if (currentUser) {
+      localStorage.setItem('amg_currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('amg_currentUser');
+    }
+  }, [isLoggedIn, currentUser, theme]);
+
   const hasWriteAccessToArea = (area: string) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
@@ -30,8 +50,16 @@ const App: React.FC = () => {
   };
 
   // App Mode State
-  const [appMode, setAppMode] = useState<'transaction' | 'accounting'>('transaction');
-  const [showPortal, setShowPortal] = useState(false);
+  const [appMode, setAppMode] = useState<'transaction' | 'accounting'>(() => 
+    (localStorage.getItem('amg_appMode') as 'transaction' | 'accounting') || 'transaction'
+  );
+  const [showPortal, setShowPortal] = useState(() => localStorage.getItem('amg_showPortal') === 'true');
+
+  // Persist mode and portal state
+  useEffect(() => {
+    localStorage.setItem('amg_appMode', appMode);
+    localStorage.setItem('amg_showPortal', showPortal.toString());
+  }, [appMode, showPortal]);
 
   const [data, setData] = useState<AppData>({ 
     units: [], tenants: [], payments: [], expenses: [], otherIncomes: [], areas: [], expenseCategories: [], users: [], bookClosings: [],
@@ -1630,39 +1658,39 @@ const App: React.FC = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm space-y-6">
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-4 transition-colors duration-300">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl w-full max-w-sm space-y-6 border border-slate-200 dark:border-slate-800 transition-colors duration-300">
           <div className="text-center flex flex-col items-center">
             <Logo size="xl" className="mb-2" />
-            <h1 className="text-2xl font-bold text-slate-800">AMG Kontrakan</h1>
-            <p className="text-slate-500 mt-1">Sistem Manajemen Terpadu</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">AMG Kontrakan</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Sistem Manajemen Terpadu</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nama Pengguna</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Pengguna</label>
               <input 
                 type="text" 
                 value={loginName}
                 onChange={(e) => setLoginName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-500/20 outline-none transition-all"
                 placeholder="Masukkan Nama"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">PIN</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PIN</label>
               <input 
                 type="password" 
                 value={loginPin}
                 onChange={(e) => setLoginPin(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-500/20 outline-none transition-all"
                 placeholder="Masukkan PIN"
                 required
                 maxLength={6}
               />
             </div>
             {loginError && <p className="text-rose-500 text-sm text-center">{loginError}</p>}
-            <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+            <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
               Masuk
             </button>
           </form>
@@ -1673,41 +1701,41 @@ const App: React.FC = () => {
 
   if (showPortal) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-300">
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-4 transition-colors duration-300">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-300 border border-slate-200 dark:border-slate-800 transition-colors duration-300">
           <div className="text-center flex flex-col items-center">
             <Logo size="xl" variant="colored" className="mb-4" />
-            <h1 className="text-2xl font-bold text-slate-800">Selamat Datang, {currentUser?.username}</h1>
-            <p className="text-slate-500 mt-2">Pilih aplikasi yang ingin Anda akses</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Selamat Datang, {currentUser?.username}</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2">Pilih aplikasi yang ingin Anda akses</p>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={() => handleSelectAppMode('transaction')}
-              className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-slate-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
+              className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all group"
             >
-              <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
               </div>
-              <span className="font-bold text-slate-700 group-hover:text-indigo-700">Transaksi</span>
-              <span className="text-xs text-slate-400 mt-1 text-center">Kelola unit, penyewa, dan pembayaran harian</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-700 dark:group-hover:text-indigo-400">Transaksi</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-center">Kelola unit, penyewa, dan pembayaran harian</span>
             </button>
 
             <button 
               onClick={() => handleSelectAppMode('accounting')}
-              className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+              className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all group"
             >
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
               </div>
-              <span className="font-bold text-slate-700 group-hover:text-emerald-700">Pembukuan</span>
-              <span className="text-xs text-slate-400 mt-1 text-center">Tutup buku bulanan dan laporan keuangan</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">Pembukuan</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 mt-1 text-center">Tutup buku bulanan dan laporan keuangan</span>
             </button>
           </div>
 
           <button 
             onClick={() => setIsLoggedIn(false)}
-            className="w-full text-slate-400 hover:text-rose-500 text-sm font-medium transition-colors"
+            className="w-full text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 text-sm font-medium transition-colors"
           >
             Keluar
           </button>
@@ -2546,17 +2574,17 @@ const App: React.FC = () => {
         </main>
 
         {/* Bottom Navigation - Mobile */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 landscape:py-1 flex justify-around items-center z-40 pb-4 landscape:pb-1">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 landscape:py-1 flex justify-around items-center z-40 pb-4 landscape:pb-1 transition-colors duration-300">
           <button 
             onClick={() => setAccountingTab('closing')} 
-            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'closing' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'closing' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <span className="text-[10px] font-bold landscape:text-xs">Tutup Buku</span>
           </button>
           <button 
             onClick={() => setAccountingTab('balance')} 
-            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'balance' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'balance' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span className="text-[10px] font-bold landscape:text-xs">Saldo</span>
@@ -2564,7 +2592,7 @@ const App: React.FC = () => {
           {currentUser?.role !== 'viewer' && (
             <button 
               onClick={() => setAccountingTab('settings')} 
-              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'settings' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'settings' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
             >
               <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               <span className="text-[10px] font-bold landscape:text-xs">Pengaturan</span>
@@ -2576,19 +2604,19 @@ const App: React.FC = () => {
         {isAlertModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative">
-              <button onClick={() => setIsAlertModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <button onClick={() => setIsAlertModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">Peringatan</h3>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Peringatan</h3>
               </div>
-              <p className="text-slate-600">{alertMessage}</p>
+              <p className="text-slate-600 dark:text-slate-400">{alertMessage}</p>
               <div className="pt-2">
                 <button 
                   onClick={() => setIsAlertModalOpen(false)} 
-                  className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
+                  className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors shadow-md shadow-amber-500/20"
                 >
                   Mengerti
                 </button>
@@ -2602,20 +2630,20 @@ const App: React.FC = () => {
         {isConfirmModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative">
-              <button onClick={() => setIsConfirmModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-              <h3 className="text-lg font-bold text-slate-800">Konfirmasi</h3>
-              <p className="text-slate-600">{confirmMessage}</p>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <button onClick={() => setIsConfirmModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Konfirmasi</h3>
+              <p className="text-slate-600 dark:text-slate-400">{confirmMessage}</p>
               <div className="flex gap-3 pt-2">
                 <button 
                   onClick={() => setIsConfirmModalOpen(false)} 
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   Batal
                 </button>
                 <button 
                   onClick={handleConfirm} 
-                  className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition-colors shadow-sm"
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition-colors shadow-md shadow-rose-600/20"
                 >
                   Hapus
                 </button>
@@ -2627,93 +2655,93 @@ const App: React.FC = () => {
 
         {/* Closing Detail Modal */}
         {isClosingDetailModalOpen && selectedBookClosing && selectedBookClosing.allocation && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-slate-800">Detail Alokasi Laba</h3>
-                <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
+                <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
               <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-                <div className="bg-slate-50 p-4 rounded-xl space-y-2">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 transition-colors">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Periode</span>
-                    <span className="font-semibold text-slate-800">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Periode</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Laba Bersih</span>
-                    <span className="font-bold text-emerald-600">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Laba Bersih</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Rincian Alokasi</h4>
+                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Rincian Alokasi</h4>
                   
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-                        <span className="font-medium text-slate-700">Zakat (2.5%)</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">Zakat (2.5%)</span>
                       </div>
-                      <span className="font-bold text-slate-800">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                         </div>
-                        <span className="font-medium text-slate-700">Kas</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">Kas</span>
                       </div>
-                      <span className="font-bold text-slate-800">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-                        <span className="font-medium text-slate-700">Saving</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">Saving</span>
                       </div>
-                      <span className="font-bold text-slate-800">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Pembagian Dividen</h4>
+                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Pembagian Dividen</h4>
                   {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
                     <div className="space-y-3">
                       {selectedBookClosing.allocation.dividends.map((div, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                        <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
                               {div.recipientName.charAt(0).toUpperCase()}
                             </div>
-                            <span className="font-medium text-slate-700">{div.recipientName}</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{div.recipientName}</span>
                           </div>
-                          <span className="font-bold text-slate-800">Rp {div.amount.toLocaleString('id-ID')}</span>
+                          <span className="font-bold text-slate-800 dark:text-white">Rp {div.amount.toLocaleString('id-ID')}</span>
                         </div>
                       ))}
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
-                        <span className="font-bold text-slate-600">Total Dividen</span>
-                        <span className="font-bold text-purple-600">
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <span className="font-bold text-slate-600 dark:text-slate-400">Total Dividen</span>
+                        <span className="font-bold text-purple-600 dark:text-purple-400">
                           Rp {selectedBookClosing.allocation.dividends.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-slate-400 italic text-center py-4">Tidak ada pembagian dividen</p>
+                    <p className="text-slate-400 dark:text-slate-500 italic text-center py-4">Tidak ada pembagian dividen</p>
                   )}
                 </div>
               </div>
-              <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end transition-colors">
                 <button 
                   onClick={() => setIsClosingDetailModalOpen(false)}
-                  className="px-6 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-colors"
+                  className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
                   Tutup
                 </button>
@@ -3346,69 +3374,106 @@ const App: React.FC = () => {
   const NavItem = ({ id, label, icon }: { id: typeof activeTab, label: string, icon: React.ReactNode }) => (
     <button 
       onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${activeTab === id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400'} w-full`}
       title={isSidebarCollapsed ? label : ""}
     >
-      <span className="shrink-0">{icon}</span>
-      {!isSidebarCollapsed && <span className="font-medium">{label}</span>}
+      <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{icon}</span>
+      <div className={`overflow-hidden transition-all duration-300 flex items-center ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+        <span className="font-medium whitespace-nowrap ml-1">{label}</span>
+      </div>
+      {isSidebarCollapsed && activeTab === id && (
+        <div className="absolute left-0 w-1 h-6 bg-indigo-600 rounded-r-full" />
+      )}
     </button>
   );
 
   return (
-    <div className="h-screen flex bg-slate-50 overflow-hidden">
+    <div className="h-screen flex bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
       {/* Sidebar - Desktop */}
-      <aside className={`hidden md:flex flex-col bg-white border-r border-slate-200 transition-all duration-300 relative ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
-          <Logo size="md" variant="colored" />
-          {!isSidebarCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-indigo-600">Manajer</h1>
-              <p className="text-xs text-slate-500 mt-1">Kontrakan Pintar AMG</p>
+      <aside className={`hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out relative z-40 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <button 
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-7 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all z-[60]"
+          title={isSidebarCollapsed ? "Expand" : "Collapse"}
+        >
+          <svg className={`w-4 h-4 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="h-20 flex items-center px-6 border-b border-slate-50 dark:border-slate-800 overflow-hidden relative">
+          <div className="flex items-center gap-3 shrink-0">
+            <Logo size="md" variant="colored" />
+            <div className={`transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-32 opacity-100'}`}>
+              <h1 className="text-xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400 whitespace-nowrap">Manajer</h1>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">Kontrakan Pintar AMG</p>
             </div>
-          )}
-          <button 
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors ml-auto"
-          >
-            <svg className={`w-5 h-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
-          </button>
+          </div>
         </div>
         
-        <nav className="flex-1 px-3 space-y-1 mt-4 overflow-hidden">
+        <nav className="flex-1 px-3 space-y-1 mt-6 overflow-y-auto no-scrollbar">
           <NavItem id="dashboard" label="Dashboard" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>} />
           <NavItem id="units" label="Unit & Wilayah" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
           <NavItem id="tenants" label="Penyewa" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>} />
           <NavItem id="transactions" label="Transaksi" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
           <NavItem id="reports" label="Laporan" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
         </nav>
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-50 dark:border-slate-800 space-y-1">
+          <button 
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
+            title={isSidebarCollapsed ? (theme === 'light' ? "Mode Gelap" : "Mode Terang") : ""}
+          >
+            <span className="shrink-0 transition-transform duration-300 group-hover:rotate-12">
+              {theme === 'light' ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+              )}
+            </span>
+            <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+              <span className="font-medium whitespace-nowrap">{theme === 'light' ? "Mode Gelap" : "Mode Terang"}</span>
+            </div>
+          </button>
           {currentUser?.role !== 'user' && (
             <button 
               onClick={() => setShowPortal(true)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800 hover:text-white w-full mb-2`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
               title={isSidebarCollapsed ? "Ganti Aplikasi" : ""}
             >
-              <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></span>
-              {!isSidebarCollapsed && <span className="font-medium">Ganti Aplikasi</span>}
+              <span className="shrink-0 transition-transform duration-300 group-hover:scale-110"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></span>
+              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                <span className="font-medium whitespace-nowrap">Ganti Aplikasi</span>
+              </div>
             </button>
           )}
           <button 
             onClick={() => setIsChangePinModalOpen(true)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800 hover:text-white w-full mb-2`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
             title={isSidebarCollapsed ? "Ganti PIN" : ""}
           >
-            <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-3l8.44-8.44A6 6 0 0115 7h.01" /></svg></span>
-            {!isSidebarCollapsed && <span className="font-medium">Ganti PIN</span>}
+            <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </span>
+            <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+              <span className="font-medium whitespace-nowrap">Ganti PIN</span>
+            </div>
           </button>
           <button 
-            onClick={() => setIsLoggedIn(false)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-rose-400 hover:bg-slate-800 hover:text-rose-300 w-full`}
+            onClick={() => {
+              setIsLoggedIn(false);
+              setCurrentUser(null);
+              localStorage.clear();
+            }}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 w-full group`}
             title={isSidebarCollapsed ? "Keluar" : ""}
           >
-            <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
-            {!isSidebarCollapsed && <span className="font-medium">Keluar</span>}
+            <span className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
+            <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+              <span className="font-medium whitespace-nowrap">Keluar</span>
+            </div>
           </button>
         </div>
       </aside>
@@ -3417,24 +3482,24 @@ const App: React.FC = () => {
       {isChangePinModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative">
-            <button onClick={() => setIsChangePinModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Ganti PIN</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsChangePinModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Ganti PIN</h3>
             <form onSubmit={handleChangePin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">PIN Lama</label>
-                <input type="password" name="oldPin" placeholder="PIN Lama" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PIN Lama</label>
+                <input type="password" name="oldPin" placeholder="PIN Lama" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">PIN Baru</label>
-                <input type="password" name="newPin" placeholder="PIN Baru" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PIN Baru</label>
+                <input type="password" name="newPin" placeholder="PIN Baru" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Konfirmasi PIN Baru</label>
-                <input type="password" name="confirmPin" placeholder="Konfirmasi PIN Baru" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Konfirmasi PIN Baru</label>
+                <input type="password" name="confirmPin" placeholder="Konfirmasi PIN Baru" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsChangePinModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsChangePinModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -3443,36 +3508,53 @@ const App: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-slate-200 px-3 py-3 md:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center sticky top-0 z-30 shadow-sm gap-3 sm:gap-2">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-3 md:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center sticky top-0 z-30 shadow-sm gap-3 sm:gap-2 transition-colors duration-300">
           <div className="flex w-full sm:w-auto justify-between items-center">
             <div className="md:hidden flex items-center gap-1 shrink-0 min-w-0">
-              <span className="font-bold text-slate-800 text-base sm:text-lg truncate">KontrakanKu</span>
+              <span className="font-bold text-slate-800 dark:text-white text-base sm:text-lg truncate">KontrakanKu</span>
+              <button 
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                title={theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+              >
+                {theme === 'light' ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                )}
+              </button>
               <button 
                 onClick={() => setIsChangePinModalOpen(true)}
-                className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                 title="Ganti PIN"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-3l8.44-8.44A6 6 0 0115 7h.01" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
               </button>
               {currentUser?.role !== 'user' && (
                 <button 
                   onClick={() => setShowPortal(true)}
-                  className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                   title="Ganti Aplikasi"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
               )}
               <button 
-                onClick={() => setIsLoggedIn(false)}
-                className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setCurrentUser(null);
+                  localStorage.clear();
+                }}
+                className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors"
                 title="Keluar"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
             <div className="hidden md:block">
-              <h2 className="text-xl font-bold text-slate-800">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                 {activeTab === 'dashboard' ? 'Dashboard' : 
                  activeTab === 'units' ? 'Pintu & Wilayah' :
                  activeTab === 'tenants' ? 'Penyewa' :
@@ -3485,11 +3567,11 @@ const App: React.FC = () => {
                 <>
                   <button onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }} className="bg-indigo-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Catat Pemasukan Lain">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    <span className="hidden lg:inline">Pemasukan Lain</span>
+                    <span className="hidden xl:inline">Pemasukan Lain</span>
                   </button>
                   <button onClick={() => { setIsAddExpenseModalOpen(true); setFormAddExpenseArea(''); setFormAddExpenseCategory(''); setUploadedFileBase64(null); }} className="bg-rose-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-rose-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Catat Pengeluaran">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span className="hidden lg:inline">Pengeluaran</span>
+                    <span className="hidden xl:inline">Pengeluaran</span>
                   </button>
                 </>
              )}
@@ -3497,35 +3579,35 @@ const App: React.FC = () => {
                <>
                 <button onClick={() => setIsAddAreaModalOpen(true)} className="bg-emerald-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-emerald-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Tambah Wilayah">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  <span className="hidden lg:inline">Wilayah</span>
+                  <span className="hidden xl:inline">Wilayah</span>
                 </button>
                 <button onClick={() => { setIsAddUnitModalOpen(true); setFormAddUnitArea(''); }} className="bg-indigo-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Tambah Unit">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                  <span className="hidden lg:inline">Unit</span>
+                  <span className="hidden xl:inline">Unit</span>
                 </button>
                </>
              )}
              {currentUser?.role === 'admin' && (
                <button onClick={() => setIsUserManagementModalOpen(true)} className="bg-slate-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-slate-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Kelola User">
                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                 <span className="hidden lg:inline">User</span>
+                 <span className="hidden xl:inline">User</span>
                </button>
              )}
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                <StatCard label="Pendapatan" value={`Rp ${totalIncome.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" /></svg>} color="bg-indigo-600" />
-                <StatCard label="Pengeluaran" value={`Rp ${totalExpenses.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} color="bg-rose-600" />
-                <StatCard label="Bersih" value={`Rp ${netIncome.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" /></svg>} color="bg-emerald-600" />
-                <StatCard label="Tunggakan" value={`Rp ${totalArrears.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} color="bg-amber-600" />
+                <StatCard label="Pendapatan" value={`Rp ${totalIncome.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" /></svg>} color="bg-indigo-600" />
+                <StatCard label="Pengeluaran" value={`Rp ${totalExpenses.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} color="bg-rose-600" />
+                <StatCard label="Bersih" value={`Rp ${netIncome.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" /></svg>} color="bg-emerald-600" />
+                <StatCard label="Tunggakan" value={`Rp ${totalArrears.toLocaleString('id-ID')}`} icon={<svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} color="bg-amber-600" />
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800">Status Unit per Wilayah</h3>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Status Unit per Wilayah</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {data.areas.map(area => {
                     const unitsInArea = data.units.filter(u => u.area === area);
@@ -3534,23 +3616,23 @@ const App: React.FC = () => {
                     const vacant = total - occupied;
                     
                     return (
-                      <div key={area} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                      <div key={area} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
                         <div className="flex justify-between items-start mb-4">
-                           <h4 className="font-bold text-slate-700 text-lg">{area}</h4>
-                           <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-lg">{total} Unit</span>
+                           <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">{area}</h4>
+                           <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg">{total} Unit</span>
                         </div>
                         
                         <div className="space-y-3">
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-500">Terisi</span>
-                            <span className="font-bold text-emerald-600">{occupied}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Terisi</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">{occupied}</span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-500">Kosong</span>
-                            <span className="font-bold text-rose-500">{vacant}</span>
+                            <span className="text-slate-500 dark:text-slate-400">Kosong</span>
+                            <span className="font-bold text-rose-500 dark:text-rose-400">{vacant}</span>
                           </div>
                           
-                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                             <div 
                               className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
                               style={{ width: `${total > 0 ? (occupied / total) * 100 : 0}%` }}
@@ -3565,13 +3647,13 @@ const App: React.FC = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-4">
-                  <h3 className="text-lg font-bold text-slate-800">Kalender Jatuh Tempo</h3>
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="grid grid-cols-7 mb-2 text-center text-[10px] font-bold text-slate-400 uppercase">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Kalender Jatuh Tempo</h3>
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                    <div className="grid grid-cols-7 mb-2 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">
                       {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(d => <div key={d}>{d}</div>)}
                     </div>
                     <div className="grid grid-cols-7 gap-1">
-                      {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={i} className="h-12 bg-slate-50 rounded-lg"></div>)}
+                      {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={i} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-lg"></div>)}
                       {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1;
                         const tenantsDue = tenantsDueOnDay(day);
@@ -3585,9 +3667,9 @@ const App: React.FC = () => {
                           <div 
                             key={day} 
                             onClick={() => setSelectedDateInCalendar(day)}
-                            className={`h-12 border rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer relative ${day === selectedDateInCalendar ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 hover:bg-slate-50'}`}
+                            className={`h-12 border rounded-lg flex flex-col items-center justify-center transition-all cursor-pointer relative ${day === selectedDateInCalendar ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                           >
-                            <span className="text-xs font-bold text-slate-600">{day}</span>
+                            <span className={`text-xs font-bold ${day === selectedDateInCalendar ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>{day}</span>
                             {hasDue && <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isAllLunas ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>}
                           </div>
                         );
@@ -3596,8 +3678,8 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-slate-800">Tagihan Tgl {selectedDateInCalendar}</h3>
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm min-h-[150px]">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tagihan Tgl {selectedDateInCalendar}</h3>
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm min-h-[150px] transition-colors duration-300">
                     {selectedDateInCalendar && tenantsDueOnDay(selectedDateInCalendar).length > 0 ? (
                       <div className="space-y-3">
                         {tenantsDueOnDay(selectedDateInCalendar).map(t => {
@@ -3606,23 +3688,23 @@ const App: React.FC = () => {
                           const isLunas = arrears <= 0;
                           
                           return (
-                            <div key={t.id} className="p-3 rounded-xl bg-slate-50 flex flex-col gap-2 transition-all hover:bg-slate-100">
+                            <div key={t.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-2 transition-all hover:bg-slate-100 dark:hover:bg-slate-800">
                               <div className="flex justify-between items-center w-full">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-bold text-slate-700">{t.name}</span>
+                                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{t.name}</span>
                                   {unit && (
-                                    <span className="text-[10px] text-slate-500">
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                                       {unit.area} - {unit.name}
                                     </span>
                                   )}
                                   {!isLunas && (
-                                    <span className="text-[10px] font-medium text-rose-500">
+                                    <span className="text-[10px] font-medium text-rose-500 dark:text-rose-400">
                                       Tunggakan: Rp {arrears.toLocaleString('id-ID')}
                                     </span>
                                   )}
                                 </div>
                                 {isLunas ? (
-                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
+                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                     Lunas
                                   </span>
@@ -3630,7 +3712,7 @@ const App: React.FC = () => {
                                   currentUser?.role !== 'viewer' && unit && hasWriteAccessToArea(unit.area) && (
                                     <button 
                                       onClick={() => handleUnitAction(unit)} 
-                                      className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                      className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-colors shadow-sm"
                                     >
                                       Bayar
                                     </button>
@@ -3641,7 +3723,7 @@ const App: React.FC = () => {
                           );
                         })}
                       </div>
-                    ) : <p className="text-xs text-slate-400 italic text-center py-10">Kosong</p>}
+                    ) : <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center py-10">Kosong</p>}
                   </div>
                 </div>
               </div>
@@ -3651,17 +3733,17 @@ const App: React.FC = () => {
           {activeTab === 'units' && (
             <div className="space-y-10 animate-in fade-in duration-300">
                <div className="flex justify-between items-center">
-                 <h3 className="text-xl font-bold text-slate-800">Unit Wilayah</h3>
+                 <h3 className="text-xl font-bold text-slate-800 dark:text-white">Unit Wilayah</h3>
                </div>
                
                {data.areas.map(area => (
                  <div key={area} className="space-y-4">
-                   <div className="flex items-center justify-between border-b pb-2">
-                      <h4 className="text-lg font-bold text-slate-700">{area}</h4>
+                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                      <h4 className="text-lg font-bold text-slate-700 dark:text-slate-200">{area}</h4>
                       {currentUser?.role === 'admin' && (
                         <div className="flex gap-2">
-                          <button onClick={() => handleEditAreaInit(area)} className="text-slate-400 hover:text-indigo-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                          <button onClick={() => handleDeleteArea(area)} className="text-slate-400 hover:text-rose-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                          <button onClick={() => handleEditAreaInit(area)} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                          <button onClick={() => handleDeleteArea(area)} className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
                       )}
                    </div>
@@ -3692,12 +3774,12 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'tenants' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-300 transition-colors duration-300">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase cursor-pointer hover:bg-slate-100" onClick={() => handleSort('name')}>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleSort('name')}>
                         <div className="flex items-center gap-1">
                           Penyewa
                           {sortConfig?.key === 'name' && (
@@ -3705,8 +3787,8 @@ const App: React.FC = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Wilayah - Unit</th>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase cursor-pointer hover:bg-slate-100" onClick={() => handleSort('moveInDate')}>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Wilayah - Unit</th>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleSort('moveInDate')}>
                         <div className="flex items-center gap-1">
                           Tgl Masuk
                           {sortConfig?.key === 'moveInDate' && (
@@ -3714,7 +3796,7 @@ const App: React.FC = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase cursor-pointer hover:bg-slate-100" onClick={() => handleSort('duration')}>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleSort('duration')}>
                         <div className="flex items-center gap-1">
                           Lama Sewa
                           {sortConfig?.key === 'duration' && (
@@ -3722,7 +3804,7 @@ const App: React.FC = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase cursor-pointer hover:bg-slate-100" onClick={() => handleSort('dueDay')}>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleSort('dueDay')}>
                         <div className="flex items-center gap-1">
                           Tgl Tempo
                           {sortConfig?.key === 'dueDay' && (
@@ -3730,25 +3812,25 @@ const App: React.FC = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Tunggakan</th>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tunggakan</th>
                       {currentUser?.role !== 'viewer' && (
-                        <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase text-right">Aksi</th>
+                        <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase text-right">Aksi</th>
                       )}
                     </tr>
                   </thead>
-                  <tbody className="divide-y text-sm">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                     {sortedTenants.map(t => (
-                      <tr key={t.id} onClick={() => handleViewTenantHistory(t)} className="hover:bg-slate-50 cursor-pointer">
-                        <td className="px-4 py-3 whitespace-nowrap font-bold">{t.name}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{(() => { const u = data.units.find(u => u.id === t.unitId); return u ? `${u.area} - ${u.name}` : '-'; })()}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatDate(t.moveInDate)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">{getDuration(t.moveInDate)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{t.dueDay}</td>
+                      <tr key={t.id} onClick={() => handleViewTenantHistory(t)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700 dark:text-slate-200">{t.name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{(() => { const u = data.units.find(u => u.id === t.unitId); return u ? `${u.area} - ${u.name}` : '-'; })()}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatDate(t.moveInDate)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{getDuration(t.moveInDate)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{t.dueDay}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {(() => {
                             const unit = data.units.find(u => u.id === t.unitId);
                             const arrears = calculateArrears(t, unit);
-                            return arrears > 0 ? <span className="text-rose-600 font-bold">Rp {arrears.toLocaleString('id-ID')}</span> : <span className="text-emerald-600 font-bold">Lunas</span>;
+                            return arrears > 0 ? <span className="text-rose-600 dark:text-rose-400 font-bold">Rp {arrears.toLocaleString('id-ID')}</span> : <span className="text-emerald-600 dark:text-emerald-400 font-bold">Lunas</span>;
                           })()}
                         </td>
                         {currentUser?.role !== 'viewer' && (
@@ -3759,8 +3841,8 @@ const App: React.FC = () => {
                                 if (!unit || !hasWriteAccessToArea(unit.area)) return null;
                                 return (
                                   <>
-                                    <button onClick={() => handleEditTenantInit(t)} className="p-1 text-slate-400 hover:text-indigo-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                                    <button onClick={() => handleDeleteTenant(t.id)} className="p-1 text-slate-400 hover:text-rose-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                    <button onClick={() => handleEditTenantInit(t)} className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                    <button onClick={() => handleDeleteTenant(t.id)} className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                   </>
                                 );
                               })()}
@@ -3777,7 +3859,7 @@ const App: React.FC = () => {
 
           {activeTab === 'transactions' && (
             <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-4">
+              <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center gap-4 transition-colors duration-300">
                 <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full md:w-auto">
                   <div className="flex gap-2 w-full md:w-auto">
                     <Dropdown 
@@ -3807,24 +3889,24 @@ const App: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800">Pemasukan</h3>
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Pemasukan</h3>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b">
+                      <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                         <tr>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Tgl Input</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Wilayah - Unit</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Penyewa</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Periode</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Tanggal</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Jumlah</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tgl Input</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Wilayah - Unit</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Penyewa</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Periode</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tanggal</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Jumlah</th>
                           {currentUser?.role !== 'viewer' && (
-                            <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase text-right">Aksi</th>
+                            <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase text-right">Aksi</th>
                           )}
                         </tr>
                       </thead>
-                      <tbody className="divide-y text-sm">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                         {data.payments.slice().reverse().filter(p => {
                           const d = new Date(p.date);
                           const matchesDate = d.getMonth() === transactionFilterMonth && d.getFullYear() === transactionFilterYear;
@@ -3838,20 +3920,20 @@ const App: React.FC = () => {
                         }).map(p => {
                           const unit = data.units.find(u => u.id === p.unitId);
                           return (
-                          <tr key={p.id}>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-500 text-xs">{p.createdAt ? formatDateTime(p.createdAt) : '-'}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-500">{unit ? `${unit.area} - ${unit.name}` : '-'}</td>
-                            <td className="px-4 py-3 whitespace-nowrap font-bold">{data.tenants.find(t => t.id === p.tenantId)?.name}</td>
-                            <td className="px-4 py-3 whitespace-nowrap">{p.periodCovered}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatDate(p.date)}</td>
-                            <td className="px-4 py-3 whitespace-nowrap font-bold text-emerald-600">Rp {p.amount.toLocaleString('id-ID')}</td>
+                          <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400 text-xs">{p.createdAt ? formatDateTime(p.createdAt) : '-'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{unit ? `${unit.area} - ${unit.name}` : '-'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700 dark:text-slate-200">{data.tenants.find(t => t.id === p.tenantId)?.name}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{p.periodCovered}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400">Rp {p.amount.toLocaleString('id-ID')}</td>
                             {currentUser?.role !== 'viewer' && (
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <div className="flex justify-end gap-2">
                                   {(!unit || hasWriteAccessToArea(unit.area)) && (
                                     <>
-                                      <button onClick={() => handleEditPaymentInit(p)} className="p-1 text-slate-400 hover:text-indigo-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                                      <button onClick={() => handleDeletePayment(p.id)} className="p-1 text-slate-400 hover:text-rose-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                      <button onClick={() => handleEditPaymentInit(p)} className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                      <button onClick={() => handleDeletePayment(p.id)} className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                     </>
                                   )}
                                 </div>
@@ -3871,7 +3953,7 @@ const App: React.FC = () => {
                           }
                           return true;
                         }).length === 0 && (
-                          <tr><td colSpan={currentUser?.role === 'viewer' ? 6 : 7} className="px-6 py-8 text-center text-slate-400 italic">Tidak ada data pemasukan untuk periode ini</td></tr>
+                          <tr><td colSpan={currentUser?.role === 'viewer' ? 6 : 7} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500 italic">Tidak ada data pemasukan untuk periode ini</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -3880,24 +3962,24 @@ const App: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-800">Pengeluaran</h3>
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Pengeluaran</h3>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b">
+                      <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                         <tr>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Tgl Input</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Wilayah</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Keterangan</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Kategori</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Tanggal</th>
-                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase">Jumlah</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tgl Input</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Wilayah</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Keterangan</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Kategori</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tanggal</th>
+                          <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Jumlah</th>
                           {currentUser?.role !== 'viewer' && (
-                            <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 uppercase text-right">Aksi</th>
+                            <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase text-right">Aksi</th>
                           )}
                         </tr>
                       </thead>
-                      <tbody className="divide-y text-sm">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                         {data.expenses.slice().reverse().filter(ex => {
                           const d = new Date(ex.date);
                           const matchesDate = d.getMonth() === transactionFilterMonth && d.getFullYear() === transactionFilterYear;
@@ -3908,13 +3990,13 @@ const App: React.FC = () => {
                           }
                           return true;
                         }).map(ex => (
-                          <tr key={ex.id}>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-500 text-xs">{ex.createdAt ? formatDateTime(ex.createdAt) : '-'}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-500">{ex.area || '-'}</td>
-                            <td className="px-4 py-3 whitespace-nowrap font-bold">{ex.description}</td>
-                            <td className="px-4 py-3 whitespace-nowrap"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{ex.category}</span></td>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatDate(ex.date)}</td>
-                            <td className="px-4 py-3 whitespace-nowrap font-bold text-rose-600">Rp {ex.amount.toLocaleString('id-ID')}</td>
+                          <tr key={ex.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400 text-xs">{ex.createdAt ? formatDateTime(ex.createdAt) : '-'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{ex.area || '-'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700 dark:text-slate-200">{ex.description}</td>
+                            <td className="px-4 py-3 whitespace-nowrap"><span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-600 dark:text-slate-400">{ex.category}</span></td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatDate(ex.date)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap font-bold text-rose-600 dark:text-rose-400">Rp {ex.amount.toLocaleString('id-ID')}</td>
                             {currentUser?.role !== 'viewer' && (
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <div className="flex justify-end gap-2">
@@ -3923,7 +4005,7 @@ const App: React.FC = () => {
                                       const directUrl = getDirectDriveLink(ex.proofUrl);
                                       const win = window.open();
                                       win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
-                                    }} className="p-1 text-slate-400 hover:text-emerald-600" title="Lihat Bukti">
+                                    }} className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400" title="Lihat Bukti">
                                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                     </button>
                                   )}
@@ -3931,8 +4013,8 @@ const App: React.FC = () => {
                                     <>
                                       {(!ex.area || hasWriteAccessToArea(ex.area)) && (
                                         <>
-                                          <button onClick={() => handleEditExpenseInit(ex)} className="p-1 text-slate-400 hover:text-indigo-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                                          <button onClick={() => handleDeleteExpense(ex.id)} className="p-1 text-slate-400 hover:text-rose-600"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                          <button onClick={() => handleEditExpenseInit(ex)} className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                          <button onClick={() => handleDeleteExpense(ex.id)} className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                         </>
                                       )}
                                     </>
@@ -3964,7 +4046,7 @@ const App: React.FC = () => {
 
           {activeTab === 'reports' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-white p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-4">
+              <div className="bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-4 transition-colors duration-300">
                 <div className="flex flex-col lg:flex-row gap-2 md:gap-4 w-full xl:w-auto">
                   <div className="flex gap-2 w-full lg:w-auto">
                     <Dropdown 
@@ -3998,97 +4080,97 @@ const App: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-                <div className="bg-white p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <h4 className="text-xs md:text-sm lg:text-base font-bold text-slate-400 uppercase mb-1 md:mb-2 tracking-wider">Total Pendapatan</h4>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-indigo-600 truncate">Rp {getReportData.totalIncome.toLocaleString('id-ID')}</p>
+                <div className="bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300">
+                  <h4 className="text-xs md:text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 uppercase mb-1 md:mb-2 tracking-wider">Total Pendapatan</h4>
+                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-indigo-600 dark:text-indigo-400 truncate">Rp {getReportData.totalIncome.toLocaleString('id-ID')}</p>
                 </div>
-                <div className="bg-white p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <h4 className="text-xs md:text-sm lg:text-base font-bold text-slate-400 uppercase mb-1 md:mb-2 tracking-wider">Total Pengeluaran</h4>
-                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-rose-600 truncate">Rp {getReportData.totalExpense.toLocaleString('id-ID')}</p>
+                <div className="bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300">
+                  <h4 className="text-xs md:text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 uppercase mb-1 md:mb-2 tracking-wider">Total Pengeluaran</h4>
+                  <p className="text-xl md:text-2xl lg:text-3xl font-bold text-rose-600 dark:text-rose-400 truncate">Rp {getReportData.totalExpense.toLocaleString('id-ID')}</p>
                 </div>
-                <div className="bg-white p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow md:col-span-2 xl:col-span-1">
-                  <h4 className="text-xs md:text-sm lg:text-base font-bold text-slate-400 uppercase mb-1 md:mb-2 tracking-wider">Bersih</h4>
-                  <p className={`text-xl md:text-2xl lg:text-3xl font-bold truncate ${getReportData.net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                <div className="bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 md:col-span-2 xl:col-span-1">
+                  <h4 className="text-xs md:text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 uppercase mb-1 md:mb-2 tracking-wider">Bersih</h4>
+                  <p className={`text-xl md:text-2xl lg:text-3xl font-bold truncate ${getReportData.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                     Rp {getReportData.net.toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-4 md:p-5 lg:p-6 border-b bg-slate-50 font-bold text-slate-700 text-sm md:text-base lg:text-lg">Rincian Pendapatan</div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                  <div className="p-4 md:p-5 lg:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base lg:text-lg">Rincian Pendapatan</div>
                   <div className="overflow-x-auto max-h-[400px] md:max-h-[500px]">
                     <table className="w-full text-left text-sm md:text-base">
-                      <thead className="bg-slate-50 border-b sticky top-0">
+                      <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
                         <tr>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Tgl</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Wilayah - Unit</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Penyewa</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Ket</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-semibold text-slate-600">Jml</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Tgl</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Wilayah - Unit</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Penyewa</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Ket</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-semibold text-slate-600 dark:text-slate-400">Jml</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                         {getReportData.income.length > 0 ? getReportData.income.map(p => {
                           const unit = data.units.find(u => u.id === p.unitId);
                           const unitName = unit ? `${unit.area} - ${unit.name}` : '-';
                           const tenantName = data.tenants.find(t => t.id === p.tenantId)?.name || '-';
                           return (
-                            <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500">{formatDate(p.date)}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-medium">{unitName}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap">{tenantName}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500">{p.notes}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-bold text-emerald-600">{p.amount.toLocaleString('id-ID')}</td>
+                            <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{formatDate(p.date)}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">{unitName}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-700 dark:text-slate-300">{tenantName}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{p.notes}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-bold text-emerald-600 dark:text-emerald-400">{p.amount.toLocaleString('id-ID')}</td>
                             </tr>
                           );
-                        }) : <tr><td colSpan={5} className="px-4 py-8 md:py-12 text-center text-slate-400 italic">Tidak ada data</td></tr>}
+                        }) : <tr><td colSpan={5} className="px-4 py-8 md:py-12 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data</td></tr>}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-4 md:p-5 lg:p-6 border-b bg-slate-50 font-bold text-slate-700 text-sm md:text-base lg:text-lg">Rincian Pengeluaran</div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                  <div className="p-4 md:p-5 lg:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base lg:text-lg">Rincian Pengeluaran</div>
                   <div className="overflow-x-auto max-h-[400px] md:max-h-[500px]">
                     <table className="w-full text-left text-sm md:text-base">
-                      <thead className="bg-slate-50 border-b sticky top-0">
+                      <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
                         <tr>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Tgl</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Wilayah</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Kategori</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Ket</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-semibold text-slate-600">Jml</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Tgl</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Wilayah</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Kategori</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Ket</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-semibold text-slate-600 dark:text-slate-400">Jml</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                         {getReportData.expenses.length > 0 ? getReportData.expenses.map(e => (
-                          <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500">{formatDate(e.date)}</td>
-                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500">{e.area || '-'}</td>
-                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap"><span className="px-2 py-1 bg-slate-100 rounded text-xs md:text-sm">{e.category}</span></td>
-                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500">{e.description}</td>
-                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-bold text-rose-600">{e.amount.toLocaleString('id-ID')}</td>
+                          <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{formatDate(e.date)}</td>
+                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{e.area || '-'}</td>
+                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap"><span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs md:text-sm text-slate-700 dark:text-slate-300">{e.category}</span></td>
+                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{e.description}</td>
+                            <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-bold text-rose-600 dark:text-rose-400">{e.amount.toLocaleString('id-ID')}</td>
                           </tr>
-                        )) : <tr><td colSpan={5} className="px-4 py-8 md:py-12 text-center text-slate-400 italic">Tidak ada data</td></tr>}
+                        )) : <tr><td colSpan={5} className="px-4 py-8 md:py-12 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data</td></tr>}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden lg:col-span-2">
-                  <div className="p-4 md:p-5 lg:p-6 border-b bg-slate-50 font-bold text-slate-700 text-sm md:text-base lg:text-lg">Rincian Tunggakan</div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden lg:col-span-2 transition-colors duration-300">
+                  <div className="p-4 md:p-5 lg:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base lg:text-lg">Rincian Tunggakan</div>
                   <div className="overflow-x-auto max-h-[400px] md:max-h-[500px]">
                     <table className="w-full text-left text-sm md:text-base">
-                      <thead className="bg-slate-50 border-b sticky top-0">
+                      <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0">
                         <tr>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Wilayah - Unit</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Penyewa</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600">Kontak</th>
-                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-semibold text-slate-600">Jml Tunggakan</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Wilayah - Unit</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Penyewa</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-semibold text-slate-600 dark:text-slate-400">Kontak</th>
+                          <th className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-semibold text-slate-600 dark:text-slate-400">Jml Tunggakan</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y">
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                         {(() => {
                           const arrearsList = data.tenants.map(t => {
                             const unit = data.units.find(u => u.id === t.unitId);
@@ -4097,15 +4179,15 @@ const App: React.FC = () => {
                           }).filter(t => t.amount > 0 && (!reportSelectedAreas.length || (t.unit && reportSelectedAreas.includes(t.unit.area))));
 
                           if (arrearsList.length === 0) {
-                            return <tr><td colSpan={4} className="px-4 py-8 md:py-12 text-center text-slate-400 italic">Tidak ada tunggakan</td></tr>;
+                            return <tr><td colSpan={4} className="px-4 py-8 md:py-12 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada tunggakan</td></tr>;
                           }
 
                           return arrearsList.map(t => (
-                            <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-medium">{t.unit ? `${t.unit.area} - ${t.unit.name}` : '-'}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap">{t.name}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500">{t.contact}</td>
-                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-bold text-amber-600">Rp {t.amount.toLocaleString('id-ID')}</td>
+                            <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">{t.unit ? `${t.unit.area} - ${t.unit.name}` : '-'}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-700 dark:text-slate-300">{t.name}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{t.contact}</td>
+                              <td className="px-4 py-3 md:px-6 md:py-4 whitespace-nowrap text-right font-bold text-amber-600 dark:text-amber-400">Rp {t.amount.toLocaleString('id-ID')}</td>
                             </tr>
                           ));
                         })()}
@@ -4119,7 +4201,7 @@ const App: React.FC = () => {
         </main>
 
         {/* Bottom Navigation - Mobile */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 landscape:py-1 flex justify-between items-center z-40 pb-4 landscape:pb-1">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 landscape:py-1 flex justify-between items-center z-40 pb-4 landscape:pb-1 transition-colors duration-300">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg> },
             { id: 'units', label: 'Unit', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg> },
@@ -4130,7 +4212,7 @@ const App: React.FC = () => {
             <button 
               key={tab.id} 
               onClick={() => setActiveTab(tab.id as any)} 
-              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${activeTab === tab.id ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${activeTab === tab.id ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
             >
               {tab.icon}
               <span className="text-[10px] font-bold landscape:text-xs">{tab.label}</span>
@@ -4145,32 +4227,32 @@ const App: React.FC = () => {
       {isPaymentModalOpen && selectedUnit && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsPaymentModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsPaymentModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             <div>
-              <h3 className="text-lg font-bold">Pembayaran: {data.tenants.find(t => t.unitId === selectedUnit.id)?.name}</h3>
-              <p className="text-slate-500">{selectedUnit.area} - {selectedUnit.name}</p>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Pembayaran: {data.tenants.find(t => t.unitId === selectedUnit.id)?.name}</h3>
+              <p className="text-slate-500 dark:text-slate-400">{selectedUnit.area} - {selectedUnit.name}</p>
             </div>
             <form onSubmit={handleAddPayment} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
-                <input type="number" name="amount" defaultValue={selectedUnit.monthlyPrice} required className="w-full px-4 py-3 rounded-xl border outline-none" placeholder="Jumlah" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah</label>
+                <input type="number" name="amount" defaultValue={selectedUnit.monthlyPrice} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" placeholder="Jumlah" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Periode</label>
-                <input type="text" name="period" defaultValue={currentPeriod} placeholder="Periode" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Periode</label>
+                <input type="text" name="period" defaultValue={currentPeriod} placeholder="Periode" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <label className="flex items-center gap-2"><input type="checkbox" name="isInstallment" /> Cicilan</label>
+              <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300"><input type="checkbox" name="isInstallment" className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500" /> Cicilan</label>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Catatan</label>
-                <textarea name="notes" placeholder="Catatan" className="w-full px-4 py-3 rounded-xl border outline-none h-20"></textarea>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan</label>
+                <textarea name="notes" placeholder="Catatan" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all h-20"></textarea>
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4181,29 +4263,29 @@ const App: React.FC = () => {
       {isEditPaymentModalOpen && selectedPayment && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditPaymentModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Riwayat Pembayaran</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditPaymentModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Riwayat Pembayaran</h3>
             <form onSubmit={handleUpdatePayment} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
-                <input type="number" name="amount" defaultValue={selectedPayment.amount} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah</label>
+                <input type="number" name="amount" defaultValue={selectedPayment.amount} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={getLocalDateString(selectedPayment.date)} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={getLocalDateString(selectedPayment.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Periode</label>
-                <input type="text" name="period" defaultValue={selectedPayment.periodCovered} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Periode</label>
+                <input type="text" name="period" defaultValue={selectedPayment.periodCovered} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <label className="flex items-center gap-2"><input type="checkbox" name="isInstallment" defaultChecked={selectedPayment.isInstallment} /> Cicilan</label>
+              <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300"><input type="checkbox" name="isInstallment" defaultChecked={selectedPayment.isInstallment} className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500" /> Cicilan</label>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Catatan</label>
-                <textarea name="notes" defaultValue={selectedPayment.notes} className="w-full px-4 py-3 rounded-xl border outline-none h-20"></textarea>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan</label>
+                <textarea name="notes" defaultValue={selectedPayment.notes} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all h-20"></textarea>
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Update</button>
-              <button type="button" onClick={() => setIsEditPaymentModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Update</button>
+              <button type="button" onClick={() => setIsEditPaymentModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4214,16 +4296,16 @@ const App: React.FC = () => {
       {isAddUnitModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsAddUnitModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Unit Baru</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddUnitModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Unit Baru</h3>
             <form onSubmit={handleAddUnit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Unit / No. Pintu</label>
-                <input type="text" name="name" placeholder="Nama/No Pintu" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Unit / No. Pintu</label>
+                <input type="text" name="name" placeholder="Nama/No Pintu" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Wilayah</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah</label>
                 <Dropdown 
                   name="area" 
                   value={formAddUnitArea} 
@@ -4233,11 +4315,11 @@ const App: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Harga per Bulan</label>
-                <input type="number" name="price" placeholder="Harga/Bulan" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Harga per Bulan</label>
+                <input type="number" name="price" placeholder="Harga/Bulan" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsAddUnitModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsAddUnitModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4248,16 +4330,16 @@ const App: React.FC = () => {
       {isEditUnitModalOpen && selectedUnit && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditUnitModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Unit: {selectedUnit.name}</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditUnitModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Unit: {selectedUnit.name}</h3>
             <form onSubmit={handleUpdateUnit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Unit / No. Pintu</label>
-                <input type="text" name="name" defaultValue={selectedUnit.name} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Unit / No. Pintu</label>
+                <input type="text" name="name" defaultValue={selectedUnit.name} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Wilayah</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah</label>
                 <Dropdown 
                   name="area" 
                   value={formEditUnitArea} 
@@ -4267,11 +4349,11 @@ const App: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Harga per Bulan</label>
-                <input type="number" name="price" defaultValue={selectedUnit.monthlyPrice} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Harga per Bulan</label>
+                <input type="number" name="price" defaultValue={selectedUnit.monthlyPrice} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Update</button>
-              <button type="button" onClick={() => setIsEditUnitModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Update</button>
+              <button type="button" onClick={() => setIsEditUnitModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4282,33 +4364,33 @@ const App: React.FC = () => {
       {isAddTenantModalOpen && selectedUnit && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsAddTenantModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Penyewa: {selectedUnit.name}</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddTenantModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Penyewa: {selectedUnit.name}</h3>
             <form onSubmit={handleAddTenant} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Penyewa</label>
-                <input type="text" name="name" placeholder="Nama" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Penyewa</label>
+                <input type="text" name="name" placeholder="Nama" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Masuk</label>
-                  <input type="date" name="moveInDate" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal Masuk</label>
+                  <input type="date" name="moveInDate" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tgl Jatuh Tempo</label>
-                  <input type="number" name="dueDay" placeholder="Tgl Tempo" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tgl Jatuh Tempo</label>
+                  <input type="number" name="dueDay" placeholder="Tgl Tempo" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
-                <input type="text" name="contact" placeholder="Kontak" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kontak / No. HP</label>
+                <input type="text" name="contact" placeholder="Kontak" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Foto Identitas</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Foto Identitas</label>
                 <div className="flex items-center gap-4">
-                  <div className="relative w-40 h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 group">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group">
                     {uploadedFileBase64 ? (
                       <>
                         <img src={getDirectDriveLink(uploadedFileBase64)} alt="Preview" className="w-full h-full object-cover" />
@@ -4325,18 +4407,18 @@ const App: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     )}
                   </div>
-                  <label className={`cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     {isUploading ? 'Mengunggah...' : 'Upload Foto'}
                     <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
                   </label>
                 </div>
               </div>
 
-              <button type="submit" disabled={isUploading} className={`w-full bg-emerald-600 text-white font-bold py-3 rounded-xl ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>Daftarkan</button>
-              <button type="button" onClick={() => setIsAddTenantModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" disabled={isUploading} className={`w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>Daftarkan</button>
+              <button type="button" onClick={() => setIsAddTenantModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4347,27 +4429,27 @@ const App: React.FC = () => {
       {isEditTenantModalOpen && selectedTenant && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditTenantModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Penyewa: {selectedTenant.name}</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditTenantModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Penyewa: {selectedTenant.name}</h3>
             <form onSubmit={handleUpdateTenant} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Penyewa</label>
-                <input type="text" name="name" defaultValue={selectedTenant.name} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Penyewa</label>
+                <input type="text" name="name" defaultValue={selectedTenant.name} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tgl Jatuh Tempo</label>
-                <input type="number" name="dueDay" defaultValue={selectedTenant.dueDay} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tgl Jatuh Tempo</label>
+                <input type="number" name="dueDay" defaultValue={selectedTenant.dueDay} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kontak / No. HP</label>
-                <input type="text" name="contact" defaultValue={selectedTenant.contact} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kontak / No. HP</label>
+                <input type="text" name="contact" defaultValue={selectedTenant.contact} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Foto Identitas</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Foto Identitas</label>
                 <div className="flex items-center gap-4">
-                  <div className="relative w-40 h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 group">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group">
                     {(uploadedFileBase64 || selectedTenant.documentUrl) ? (
                       <>
                         <img src={getDirectDriveLink(uploadedFileBase64 || selectedTenant.documentUrl || '')} alt="Preview" className="w-full h-full object-cover" />
@@ -4384,18 +4466,18 @@ const App: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     )}
                   </div>
-                  <label className={`cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     {isUploading ? 'Mengunggah...' : 'Upload Foto'}
                     <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
                   </label>
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Update</button>
-              <button type="button" onClick={() => setIsEditTenantModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Update</button>
+              <button type="button" onClick={() => setIsEditTenantModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4406,9 +4488,9 @@ const App: React.FC = () => {
       {isAddOtherIncomeModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsAddOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Catat Pemasukan Lain</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Catat Pemasukan Lain</h3>
             <form onSubmit={(e) => {
               e.preventDefault();
               withLoading(() => {
@@ -4439,35 +4521,35 @@ const App: React.FC = () => {
               });
             }} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                <input type="text" name="category" placeholder="Contoh: Penjualan Aset, Hibah" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
+                <input type="text" name="category" placeholder="Contoh: Penjualan Aset, Hibah" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" placeholder="Deskripsi pemasukan" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" placeholder="Deskripsi pemasukan" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (Rp)</label>
-                <input type="number" name="amount" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah (Rp)</label>
+                <input type="number" name="amount" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Tambahan</label>
-                <textarea name="notes" className="w-full px-4 py-3 rounded-xl border outline-none" rows={2}></textarea>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan Tambahan</label>
+                <textarea name="notes" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" rows={2}></textarea>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                 <input type="checkbox" name="allocateToWallet" id="allocateToWallet3" defaultChecked className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500" />
-                <label htmlFor="allocateToWallet3" className="text-sm text-slate-700 cursor-pointer select-none">
+                <label htmlFor="allocateToWallet3" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                   Masukan ke Alokasi Dompet (Zakat, Kas, Saving)
-                  <p className="text-xs text-slate-500 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
                 </label>
               </div>
               
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Simpan</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
             </form>
           </div>
           </div>
@@ -4522,16 +4604,16 @@ const App: React.FC = () => {
       {isAddAreaModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsAddAreaModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Wilayah Baru</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddAreaModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Wilayah Baru</h3>
             <form onSubmit={handleAddArea} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Wilayah</label>
-                <input type="text" name="areaName" placeholder="Nama Wilayah" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Wilayah</label>
+                <input type="text" name="areaName" placeholder="Nama Wilayah" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsAddAreaModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsAddAreaModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4542,16 +4624,16 @@ const App: React.FC = () => {
       {isEditAreaModalOpen && selectedArea && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditAreaModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Wilayah: {selectedArea}</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditAreaModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Wilayah: {selectedArea}</h3>
             <form onSubmit={handleUpdateArea} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Wilayah</label>
-                <input type="text" name="areaName" defaultValue={selectedArea} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Wilayah</label>
+                <input type="text" name="areaName" defaultValue={selectedArea} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Update</button>
-              <button type="button" onClick={() => setIsEditAreaModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Update</button>
+              <button type="button" onClick={() => setIsEditAreaModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4562,23 +4644,23 @@ const App: React.FC = () => {
       {isTenantHistoryModalOpen && selectedTenant && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl rounded-2xl flex flex-col p-6 relative">
-            <button onClick={() => setIsTenantHistoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl flex flex-col p-6 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsTenantHistoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             <div className="flex justify-between items-center mb-4">
-               <h3 className="text-xl font-bold">Riwayat: {selectedTenant.name}</h3>
+               <h3 className="text-xl font-bold text-slate-800 dark:text-white">Riwayat: {selectedTenant.name}</h3>
             </div>
             <div className="overflow-x-auto">
                <table className="w-full text-left text-sm">
-                  <thead className="border-b">
-                    <tr><th className="py-2">Periode</th><th className="py-2">Jumlah</th><th className="py-2 text-right">Aksi</th></tr>
+                  <thead className="border-b border-slate-100 dark:border-slate-800">
+                    <tr className="text-slate-500 dark:text-slate-400"><th className="py-2">Periode</th><th className="py-2">Jumlah</th><th className="py-2 text-right">Aksi</th></tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {data.payments.filter(p => p.tenantId === selectedTenant.id).reverse().map(p => (
-                      <tr key={p.id}>
-                        <td className="py-3">{p.periodCovered}</td>
-                        <td className="py-3 font-bold">Rp {p.amount.toLocaleString('id-ID')}</td>
+                      <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3 text-slate-700 dark:text-slate-300">{p.periodCovered}</td>
+                        <td className="py-3 font-bold text-slate-800 dark:text-white">Rp {p.amount.toLocaleString('id-ID')}</td>
                         <td className="py-3 text-right">
-                          <button onClick={() => handleDeletePayment(p.id)} className="text-rose-500 hover:text-rose-700">Hapus</button>
+                          <button onClick={() => handleDeletePayment(p.id)} className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition-colors">Hapus</button>
                         </td>
                       </tr>
                     ))}
@@ -4594,20 +4676,20 @@ const App: React.FC = () => {
       {isConfirmModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative">
-            <button onClick={() => setIsConfirmModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold text-slate-800">Konfirmasi</h3>
-            <p className="text-slate-600">{confirmMessage}</p>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsConfirmModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Konfirmasi</h3>
+            <p className="text-slate-600 dark:text-slate-400">{confirmMessage}</p>
             <div className="flex gap-3 pt-2">
               <button 
                 onClick={() => setIsConfirmModalOpen(false)} 
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 Batal
               </button>
               <button 
                 onClick={handleConfirm} 
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition-colors shadow-sm"
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition-colors shadow-sm shadow-rose-600/20"
               >
                 Hapus
               </button>
@@ -4621,24 +4703,24 @@ const App: React.FC = () => {
       {isAddExpenseModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsAddExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Catat Pengeluaran</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Catat Pengeluaran</h3>
             <form onSubmit={handleAddExpense} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" placeholder="Keterangan" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" placeholder="Keterangan" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
-                <input type="number" name="amount" placeholder="Jumlah (Rp)" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah</label>
+                <input type="number" name="amount" placeholder="Jumlah (Rp)" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Wilayah {currentUser?.role === 'admin' ? '(Opsional)' : ''}</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah {currentUser?.role === 'admin' ? '(Opsional)' : ''}</label>
                 <Dropdown 
                   name="area" 
                   value={formAddExpenseArea} 
@@ -4648,7 +4730,7 @@ const App: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Dropdown 
@@ -4659,14 +4741,14 @@ const App: React.FC = () => {
                       placeholder="Pilih Kategori"
                     />
                   </div>
-                  <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 rounded-xl hover:bg-slate-200 font-bold text-slate-600">+</button>
+                  <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-slate-600 dark:text-slate-400 transition-colors">+</button>
                 </div>
               </div>
               
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Bukti Pembayaran</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bukti Pembayaran</label>
                 <div className="flex items-center gap-4">
-                  <div className="relative w-40 h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 group">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group transition-colors">
                     {uploadedFileBase64 ? (
                       <>
                         <img src={getDirectDriveLink(uploadedFileBase64)} alt="Preview" className="w-full h-full object-cover" />
@@ -4683,18 +4765,18 @@ const App: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     )}
                   </div>
-                  <label className={`cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     {isUploading ? 'Mengunggah...' : 'Upload Foto'}
                     <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
                   </label>
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-rose-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsAddExpenseModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-rose-600 text-white font-bold py-3 rounded-xl hover:bg-rose-700 transition-colors shadow-md shadow-rose-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsAddExpenseModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4705,24 +4787,24 @@ const App: React.FC = () => {
       {isEditExpenseModalOpen && selectedExpense && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Pengeluaran</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Pengeluaran</h3>
             <form onSubmit={handleUpdateExpense} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" defaultValue={selectedExpense.description} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" defaultValue={selectedExpense.description} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
-                <input type="number" name="amount" defaultValue={selectedExpense.amount} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah</label>
+                <input type="number" name="amount" defaultValue={selectedExpense.amount} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={getLocalDateString(selectedExpense.date)} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={getLocalDateString(selectedExpense.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Wilayah (Opsional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah (Opsional)</label>
                 <Dropdown 
                   name="area" 
                   value={formEditExpenseArea} 
@@ -4732,7 +4814,7 @@ const App: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Dropdown 
@@ -4743,14 +4825,14 @@ const App: React.FC = () => {
                       placeholder="Pilih Kategori"
                     />
                   </div>
-                  <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 rounded-xl hover:bg-slate-200 font-bold text-slate-600">+</button>
+                  <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-slate-600 dark:text-slate-400 transition-colors">+</button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Bukti Pembayaran</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bukti Pembayaran</label>
                 <div className="flex items-center gap-4">
-                  <div className="relative w-40 h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 group">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group">
                     {(uploadedFileBase64 || selectedExpense.proofUrl) ? (
                       <>
                         <img src={getDirectDriveLink(uploadedFileBase64 || selectedExpense.proofUrl || '')} alt="Preview" className="w-full h-full object-cover" />
@@ -4767,18 +4849,18 @@ const App: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     )}
                   </div>
-                  <label className={`cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     {isUploading ? 'Mengunggah...' : 'Upload Foto'}
                     <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
                   </label>
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Update</button>
-              <button type="button" onClick={() => setIsEditExpenseModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Update</button>
+              <button type="button" onClick={() => setIsEditExpenseModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4789,16 +4871,16 @@ const App: React.FC = () => {
       {isAddCategoryModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative">
-            <button onClick={() => setIsAddCategoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Kategori Baru</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddCategoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Kategori Baru</h3>
             <form onSubmit={handleAddCategory} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Kategori</label>
-                <input type="text" name="categoryName" placeholder="Nama Kategori" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Kategori</label>
+                <input type="text" name="categoryName" placeholder="Nama Kategori" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsAddCategoryModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsAddCategoryModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4809,29 +4891,29 @@ const App: React.FC = () => {
       {isAddUserModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative">
-            <button onClick={() => setIsAddUserModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Tambah User</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsAddUserModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tambah User</h3>
             <form onSubmit={handleAddUser} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
-                <input type="text" name="username" placeholder="Username" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                <input type="text" name="username" placeholder="Username" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">PIN (6 digit)</label>
-                <input type="password" name="pin" placeholder="123456" maxLength={6} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PIN (6 digit)</label>
+                <input type="password" name="pin" placeholder="123456" maxLength={6} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <select name="role" className="w-full px-4 py-3 rounded-xl border outline-none bg-white">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
+                <select name="role" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
                   <option value="user">User (Edit)</option>
                   <option value="viewer">Viewer (Lihat Saja)</option>
                   <option value="accountant">Accountant (Pembukuan)</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -4842,10 +4924,10 @@ const App: React.FC = () => {
       {isUserManagementModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative">
-              <button onClick={() => setIsUserManagementModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <button onClick={() => setIsUserManagementModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">Kelola Pengguna</h3>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Kelola Pengguna</h3>
                 <button onClick={() => { setIsUserManagementModalOpen(false); setIsAddUserModalOpen(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   Tambah User
@@ -4854,31 +4936,31 @@ const App: React.FC = () => {
               
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 border-b">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                     <tr>
-                      <th className="px-4 py-3 font-medium text-slate-500">Username</th>
-                      <th className="px-4 py-3 font-medium text-slate-500">Role</th>
-                      <th className="px-4 py-3 font-medium text-slate-500">Wilayah Akses</th>
-                      <th className="px-4 py-3 font-medium text-slate-500 text-right">Aksi</th>
+                      <th className="px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Username</th>
+                      <th className="px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Role</th>
+                      <th className="px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Wilayah Akses</th>
+                      <th className="px-4 py-3 font-medium text-slate-500 dark:text-slate-400 text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {data.users.map((user, idx) => (
-                      <tr key={idx}>
-                        <td className="px-4 py-3 font-medium">{user.username}</td>
+                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">{user.username}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            user.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 
-                            user.role === 'viewer' ? 'bg-emerald-100 text-emerald-700' : 
-                            user.role === 'accountant' ? 'bg-amber-100 text-amber-700' :
-                            'bg-slate-100 text-slate-700'
+                            user.role === 'admin' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 
+                            user.role === 'viewer' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 
+                            user.role === 'accountant' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                            'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
                           }`}>
                             {user.role}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           {user.role === 'admin' ? (
-                            <span className="text-xs text-slate-500 italic">Semua Wilayah</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-500 italic">Semua Wilayah</span>
                           ) : (
                             <MultiSelectDropdown
                               value={user.allowedAreas || []}
@@ -4912,7 +4994,7 @@ const App: React.FC = () => {
                                     showToast(`Role ${user.username} berhasil diubah`);
                                   });
                                 }}
-                                className="text-xs font-bold px-2 py-1 border border-slate-200 rounded outline-none bg-white"
+                                className="text-xs font-bold px-2 py-1 border border-slate-200 dark:border-slate-700 rounded outline-none bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500/50 transition-all"
                               >
                                 <option value="user">User</option>
                                 <option value="viewer">Viewer</option>
@@ -4921,7 +5003,7 @@ const App: React.FC = () => {
                               </select>
                               <button 
                                 onClick={() => handleResetPin(user.username)}
-                                className="text-amber-600 hover:text-amber-800 text-xs font-bold px-2 py-1 border border-amber-200 rounded"
+                                className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 text-xs font-bold px-2 py-1 border border-amber-200 dark:border-amber-900/50 rounded hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                               >
                                 Reset PIN
                               </button>
@@ -4934,13 +5016,13 @@ const App: React.FC = () => {
                                     showToast('User berhasil dihapus');
                                   });
                                 })}
-                                className="text-rose-600 hover:text-rose-800 text-xs font-bold px-2 py-1 border border-rose-200 rounded"
+                                className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 text-xs font-bold px-2 py-1 border border-rose-200 dark:border-rose-900/50 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                               >
                                 Hapus
                               </button>
                             </>
                           )}
-                          {user.username === currentUser?.username && <span className="text-slate-400 text-xs italic">Akun Anda</span>}
+                          {user.username === currentUser?.username && <span className="text-slate-400 dark:text-slate-500 text-xs italic">Akun Anda</span>}
                         </td>
                       </tr>
                     ))}
@@ -4955,92 +5037,92 @@ const App: React.FC = () => {
       {/* Closing Detail Modal */}
       {isClosingDetailModalOpen && selectedBookClosing && selectedBookClosing.allocation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-800">Detail Alokasi Laba</h3>
-              <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
+              <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-              <div className="bg-slate-50 p-4 rounded-xl space-y-2">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 border border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Periode</span>
-                  <span className="font-semibold text-slate-800">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Periode</span>
+                  <span className="font-semibold text-slate-800 dark:text-white">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Laba Bersih</span>
-                  <span className="font-bold text-emerald-600">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Laba Bersih</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Rincian Alokasi</h4>
+                <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Rincian Alokasi</h4>
                 
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
-                      <span className="font-medium text-slate-700">Zakat (2.5%)</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Zakat (2.5%)</span>
                     </div>
-                    <span className="font-bold text-slate-800">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
                   </div>
 
-                  <div className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                       </div>
-                      <span className="font-medium text-slate-700">Kas</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Kas</span>
                     </div>
-                    <span className="font-bold text-slate-800">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
                   </div>
 
-                  <div className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
-                      <span className="font-medium text-slate-700">Saving</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Saving</span>
                     </div>
-                    <span className="font-bold text-slate-800">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-bold text-slate-800 border-b border-slate-100 pb-2">Pembagian Dividen</h4>
+                <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Pembagian Dividen</h4>
                 {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
                   <div className="space-y-3">
                     {selectedBookClosing.allocation.dividends.map((div, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                      <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
                             {div.recipientName.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-slate-700">{div.recipientName}</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{div.recipientName}</span>
                         </div>
-                        <span className="font-bold text-slate-800">Rp {div.amount.toLocaleString('id-ID')}</span>
+                        <span className="font-bold text-slate-800 dark:text-white">Rp {div.amount.toLocaleString('id-ID')}</span>
                       </div>
                     ))}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
-                      <span className="font-bold text-slate-600">Total Dividen</span>
-                      <span className="font-bold text-purple-600">
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                      <span className="font-bold text-slate-600 dark:text-slate-400">Total Dividen</span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400">
                         Rp {selectedBookClosing.allocation.dividends.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-slate-400 italic text-center py-4">Tidak ada pembagian dividen</p>
+                  <p className="text-slate-400 dark:text-slate-500 italic text-center py-4">Tidak ada pembagian dividen</p>
                 )}
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
               <button 
                 onClick={() => setIsClosingDetailModalOpen(false)}
-                className="px-6 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-colors"
+                className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
               >
                 Tutup
               </button>
@@ -5052,10 +5134,10 @@ const App: React.FC = () => {
         {isExportNoteModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative animate-in zoom-in-95 duration-200">
-                <button onClick={() => setIsExportNoteModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                <h3 className="text-lg font-bold text-slate-800">Catatan Tunggakan</h3>
-                <p className="text-sm text-slate-600">Terdapat tunggakan pada periode ini. Tambahkan catatan untuk disertakan dalam laporan PDF (opsional).</p>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+                <button onClick={() => setIsExportNoteModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Catatan Tunggakan</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Terdapat tunggakan pada periode ini. Tambahkan catatan untuk disertakan dalam laporan PDF (opsional).</p>
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   setIsExportNoteModalOpen(false);
@@ -5065,7 +5147,7 @@ const App: React.FC = () => {
                     <textarea 
                       value={exportNote} 
                       onChange={(e) => setExportNote(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border outline-none min-h-[100px] resize-y" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none min-h-[100px] resize-y focus:ring-2 focus:ring-emerald-500/50 transition-all" 
                       placeholder="Contoh: Penyewa A berjanji akan melunasi minggu depan..."
                       autoFocus
                     />
@@ -5077,11 +5159,11 @@ const App: React.FC = () => {
                         setIsExportNoteModalOpen(false);
                         generateReportPDF('');
                       }}
-                      className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                      className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                     >
                       Lewati
                     </button>
-                    <button type="submit" className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors">Lanjutkan Export</button>
+                    <button type="submit" className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">Lanjutkan Export</button>
                   </div>
                 </form>
               </div>
@@ -5109,9 +5191,9 @@ const App: React.FC = () => {
       {/* Global Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[200] flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4 border border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-bold text-slate-800">Memproses...</p>
+            <p className="font-bold text-slate-800 dark:text-white">Memproses...</p>
           </div>
         </div>
       )}

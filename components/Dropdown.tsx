@@ -34,13 +34,13 @@ const Dropdown: React.FC<DropdownProps> = ({ value, options, onChange, className
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 md:px-4 md:py-2 rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-500 text-sm md:text-base text-left transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2 md:px-4 md:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-indigo-500 text-sm md:text-base text-left transition-colors dark:text-white"
       >
-        <span className={`truncate mr-2 ${!selectedOption && !value ? 'text-slate-400' : ''}`}>
+        <span className={`truncate mr-2 ${!selectedOption && !value ? 'text-slate-400 dark:text-slate-500' : ''}`}>
           {selectedOption?.label || (value ? value : placeholder)}
         </span>
         <svg 
-          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''} shrink-0`} 
+          className={`w-4 h-4 text-slate-400 dark:text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''} shrink-0`} 
           fill="none" 
           viewBox="0 0 24 24" 
           stroke="currentColor"
@@ -50,7 +50,7 @@ const Dropdown: React.FC<DropdownProps> = ({ value, options, onChange, className
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[140px] max-h-60 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[140px] max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100">
           <div className="py-1">
             {options.map((option) => (
               <button
@@ -59,8 +59,8 @@ const Dropdown: React.FC<DropdownProps> = ({ value, options, onChange, className
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors ${
-                  option.value === value ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-700'
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+                  option.value === value ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {option.label}
