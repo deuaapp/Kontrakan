@@ -1746,7 +1746,7 @@ const App: React.FC = () => {
 
   if (appMode === 'accounting') {
     return (
-      <div className="h-screen flex bg-slate-50 overflow-hidden font-sans">
+      <div className="h-screen flex bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans transition-colors duration-300">
         <aside className={`hidden md:flex flex-col bg-slate-900 text-white transition-all duration-300 relative ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
             <Logo size="md" variant="dark" />
@@ -1857,18 +1857,18 @@ const App: React.FC = () => {
           <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
             <header className="hidden md:flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                   {accountingTab === 'closing' ? 'Tutup Buku Bulanan' : 
                    accountingTab === 'balance' ? 'Saldo & Ringkasan' : 
                    'Pengaturan Pembukuan'}
                 </h2>
                 {accountingTab === 'closing' && (
-                  <p className="text-slate-500">Periode: {monthNames[reportMonth]} {reportYear}</p>
+                  <p className="text-slate-500 dark:text-slate-400">Periode: {monthNames[reportMonth]} {reportYear}</p>
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-600">{currentUser?.username} ({currentUser?.role})</span>
-                <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{currentUser?.username} ({currentUser?.role})</span>
+                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
                   {currentUser?.username.charAt(0).toUpperCase()}
                 </div>
               </div>
@@ -1876,13 +1876,13 @@ const App: React.FC = () => {
 
             {/* Mobile Title */}
             <div className="md:hidden mb-6">
-              <h2 className="text-xl font-bold text-slate-800">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                 {accountingTab === 'closing' ? 'Tutup Buku' : 
                  accountingTab === 'balance' ? 'Saldo' : 
                  'Pengaturan'}
               </h2>
               {accountingTab === 'closing' && (
-                <p className="text-sm text-slate-500">Periode: {monthNames[reportMonth]} {reportYear}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Periode: {monthNames[reportMonth]} {reportYear}</p>
               )}
             </div>
 
@@ -1890,14 +1890,14 @@ const App: React.FC = () => {
             <div className="space-y-8">
               <div className="space-y-6">
                 {unclosedPeriods.length > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-colors">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-100 text-amber-600 rounded-lg shrink-0">
+                      <div className="p-2 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-amber-800">Ada {unclosedPeriods.length} periode yang belum ditutup</h4>
-                        <p className="text-xs text-amber-700 mt-1">
+                        <h4 className="text-sm font-bold text-amber-800 dark:text-amber-200">Ada {unclosedPeriods.length} periode yang belum ditutup</h4>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                           {unclosedPeriods.slice(0, 3).map(p => `${monthNames[p.month]} ${p.year}`).join(', ')}
                           {unclosedPeriods.length > 3 && ` dan ${unclosedPeriods.length - 3} lainnya`}
                         </p>
@@ -1915,9 +1915,9 @@ const App: React.FC = () => {
                     </button>
                   </div>
                 )}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h3 className="text-lg font-bold text-slate-800">Ringkasan Periode Berjalan</h3>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Ringkasan Periode Berjalan</h3>
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                       <Dropdown 
                         value={reportMonth}
@@ -1942,14 +1942,14 @@ const App: React.FC = () => {
                       <>
                         <button
                           onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }}
-                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
+                          className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                           Tambah Pemasukan Lain
                         </button>
                         <button
                           onClick={() => { setIsAddExpenseModalOpen(true); setUploadedFileBase64(null); }}
-                          className="px-4 py-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
+                          className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                           Tambah Pengeluaran
@@ -1959,9 +1959,9 @@ const App: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                      <p className="text-xs font-bold text-indigo-400 uppercase mb-1">Pendapatan</p>
-                      <p className="text-xl font-bold text-indigo-700">
+                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                      <p className="text-xs font-bold text-indigo-400 dark:text-indigo-500 uppercase mb-1">Pendapatan</p>
+                      <p className="text-xl font-bold text-indigo-700 dark:text-indigo-400">
                         Rp {(data.payments.filter(p => {
                           const d = new Date(p.date);
                           return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
@@ -1972,18 +1972,18 @@ const App: React.FC = () => {
                         }).reduce((acc, i) => acc + i.amount, 0) || 0)).toLocaleString('id-ID')}
                       </p>
                     </div>
-                    <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
-                      <p className="text-xs font-bold text-rose-400 uppercase mb-1">Pengeluaran</p>
-                      <p className="text-xl font-bold text-rose-700">
+                    <div className="p-4 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-100 dark:border-rose-900/30">
+                      <p className="text-xs font-bold text-rose-400 dark:text-rose-500 uppercase mb-1">Pengeluaran</p>
+                      <p className="text-xl font-bold text-rose-700 dark:text-rose-400">
                         Rp {data.expenses.filter(e => {
                           const d = new Date(e.date);
                           return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
                         }).reduce((acc, e) => acc + e.amount, 0).toLocaleString('id-ID')}
                       </p>
                     </div>
-                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <p className="text-xs font-bold text-emerald-400 uppercase mb-1">Laba Bersih</p>
-                      <p className="text-xl font-bold text-emerald-700">
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                      <p className="text-xs font-bold text-emerald-400 dark:text-emerald-500 uppercase mb-1">Laba Bersih</p>
+                      <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
                         Rp {((data.payments.filter(p => {
                           const d = new Date(p.date);
                           return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
@@ -2002,7 +2002,7 @@ const App: React.FC = () => {
 
                   <div className="flex justify-end">
                     {data.bookClosings?.some(c => c.periodMonth === reportMonth && c.periodYear === reportYear) ? (
-                      <div className="w-full sm:w-auto px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-slate-200">
+                      <div className="w-full sm:w-auto px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-slate-200 dark:border-slate-700 transition-colors">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         Periode Ini Sudah Ditutup
                       </div>
@@ -2012,7 +2012,7 @@ const App: React.FC = () => {
                        data.expenses.some(e => { const d = new Date(e.date); return d.getMonth() === reportMonth && d.getFullYear() === reportYear; })) && (
                         <button 
                           onClick={handleBookClosing}
-                          className="w-full sm:w-auto px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 flex items-center justify-center gap-2"
+                          className="w-full sm:w-auto px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 flex items-center justify-center gap-2"
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           Tutup Buku Periode Ini
@@ -2024,10 +2024,10 @@ const App: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Income Table */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                      <h3 className="text-lg font-bold text-slate-800">Rincian Pemasukan</h3>
-                      <span className="text-xs font-bold px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">Rincian Pemasukan</h3>
+                      <span className="text-xs font-bold px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-lg">
                         {(data.payments.filter(p => {
                           const d = new Date(p.date);
                           return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
@@ -2040,16 +2040,16 @@ const App: React.FC = () => {
                     </div>
                     <div className="overflow-x-auto max-h-96 overflow-y-auto">
                       <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-50 border-b border-slate-100 sticky top-0">
+                        <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 sticky top-0">
                           <tr>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Tanggal</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Wilayah - Unit/Kategori</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Keterangan</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600 text-right">Jumlah</th>
-                            {currentUser?.role !== 'viewer' && <th className="px-4 py-3 font-semibold text-slate-600 text-center">Aksi</th>}
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Tanggal</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Wilayah - Unit/Kategori</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Keterangan</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-right">Jumlah</th>
+                            {currentUser?.role !== 'viewer' && <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {/* Rental Payments */}
                           {data.payments.filter(p => {
                             const d = new Date(p.date);
@@ -2058,11 +2058,11 @@ const App: React.FC = () => {
                             const unit = data.units.find(u => u.id === p.unitId);
                             const tenant = data.tenants.find(t => t.id === p.tenantId);
                             return (
-                              <tr key={p.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-3 text-slate-600">{formatDate(p.date)}</td>
-                                <td className="px-4 py-3 text-slate-800 font-medium">{unit ? `${unit.area} - ${unit.name}` : '-'}</td>
-                                <td className="px-4 py-3 text-slate-600">Sewa: {tenant ? tenant.name : '-'}</td>
-                                <td className="px-4 py-3 text-right text-indigo-600 font-medium">Rp {p.amount.toLocaleString('id-ID')}</td>
+                              <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
+                                <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-medium">{unit ? `${unit.area} - ${unit.name}` : '-'}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Sewa: {tenant ? tenant.name : '-'}</td>
+                                <td className="px-4 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium">Rp {p.amount.toLocaleString('id-ID')}</td>
                                 {currentUser?.role !== 'viewer' && <td className="px-4 py-3 text-center"></td>}
                               </tr>
                             );
@@ -2073,18 +2073,18 @@ const App: React.FC = () => {
                             const d = new Date(i.date);
                             return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
                           }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(i => (
-                            <tr key={i.id} className="hover:bg-slate-50 bg-indigo-50/30">
-                              <td className="px-4 py-3 text-slate-600">{formatDate(i.date)}</td>
-                              <td className="px-4 py-3 text-slate-800 font-medium">{i.category}</td>
-                              <td className="px-4 py-3 text-slate-600">{i.description}</td>
-                              <td className="px-4 py-3 text-right text-indigo-600 font-medium">Rp {i.amount.toLocaleString('id-ID')}</td>
+                            <tr key={i.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-indigo-50/30 dark:bg-indigo-900/10 transition-colors">
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(i.date)}</td>
+                              <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-medium">{i.category}</td>
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{i.description}</td>
+                              <td className="px-4 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium">Rp {i.amount.toLocaleString('id-ID')}</td>
                               {currentUser?.role !== 'viewer' && (
                                 <td className="px-4 py-3 text-center">
                                   <div className="flex items-center justify-center gap-2">
-                                    <button onClick={() => handleEditOtherIncomeInit(i)} className="text-slate-400 hover:text-indigo-600 transition-colors" title="Edit">
+                                    <button onClick={() => handleEditOtherIncomeInit(i)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Edit">
                                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                     </button>
-                                    <button onClick={() => handleDeleteOtherIncome(i.id)} className="text-slate-400 hover:text-rose-600 transition-colors" title="Hapus">
+                                    <button onClick={() => handleDeleteOtherIncome(i.id)} className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors" title="Hapus">
                                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     </button>
                                   </div>
@@ -2101,7 +2101,7 @@ const App: React.FC = () => {
                             return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
                           }).length === 0) && (
                             <tr>
-                              <td colSpan={currentUser?.role !== 'viewer' ? 5 : 4} className="px-4 py-8 text-center text-slate-400 italic">Tidak ada data pemasukan</td>
+                              <td colSpan={currentUser?.role !== 'viewer' ? 5 : 4} className="px-4 py-8 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data pemasukan</td>
                             </tr>
                           )}
                         </tbody>
@@ -2110,10 +2110,10 @@ const App: React.FC = () => {
                   </div>
 
                   {/* Expense Table */}
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                      <h3 className="text-lg font-bold text-slate-800">Rincian Pengeluaran</h3>
-                      <span className="text-xs font-bold px-2 py-1 bg-rose-100 text-rose-700 rounded-lg">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">Rincian Pengeluaran</h3>
+                      <span className="text-xs font-bold px-2 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 rounded-lg">
                         {data.expenses.filter(e => {
                           const d = new Date(e.date);
                           return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
@@ -2122,18 +2122,18 @@ const App: React.FC = () => {
                     </div>
                     <div className="overflow-x-auto max-h-96 overflow-y-auto">
                       <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-50 border-b border-slate-100 sticky top-0">
+                        <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 sticky top-0">
                           <tr>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Tanggal</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Wilayah - Unit</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Kategori</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Keterangan</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600">Bukti</th>
-                            <th className="px-4 py-3 font-semibold text-slate-600 text-right">Jumlah</th>
-                            {currentUser?.role !== 'viewer' && <th className="px-4 py-3 font-semibold text-slate-600 text-center">Aksi</th>}
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Tanggal</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Wilayah - Unit</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Kategori</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Keterangan</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Bukti</th>
+                            <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-right">Jumlah</th>
+                            {currentUser?.role !== 'viewer' && <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {data.expenses.filter(e => {
                             const d = new Date(e.date);
                             return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
@@ -2142,12 +2142,12 @@ const App: React.FC = () => {
                               const d = new Date(e.date);
                               return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
                             }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => (
-                              <tr key={e.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-3 text-slate-600">{formatDate(e.date)}</td>
-                                <td className="px-4 py-3 text-slate-600">{e.area || '-'}</td>
-                                <td className="px-4 py-3 text-slate-800 font-medium">{e.category}</td>
-                                <td className="px-4 py-3 text-slate-600 truncate max-w-[150px]" title={e.description}>{e.description}</td>
-                                <td className="px-4 py-3 text-slate-600">
+                              <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(e.date)}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{e.area || '-'}</td>
+                                <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-medium">{e.category}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[150px]" title={e.description}>{e.description}</td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                                   {e.proofUrl ? (
                                     <button 
                                       onClick={() => {
@@ -2155,20 +2155,20 @@ const App: React.FC = () => {
                                         const win = window.open();
                                         win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
                                       }} 
-                                      className="text-indigo-600 hover:text-indigo-800 underline text-xs"
+                                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 underline text-xs"
                                     >
                                       Lihat
                                     </button>
                                   ) : '-'}
                                 </td>
-                                <td className="px-4 py-3 text-right text-rose-600 font-medium">Rp {e.amount.toLocaleString('id-ID')}</td>
+                                <td className="px-4 py-3 text-right text-rose-600 dark:text-rose-400 font-medium">Rp {e.amount.toLocaleString('id-ID')}</td>
                                 {currentUser?.role !== 'viewer' && (
                                   <td className="px-4 py-3 text-center">
                                     <div className="flex items-center justify-center gap-2">
-                                      <button onClick={() => handleEditExpenseInit(e)} className="text-slate-400 hover:text-indigo-600 transition-colors" title="Edit">
+                                      <button onClick={() => handleEditExpenseInit(e)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Edit">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                       </button>
-                                      <button onClick={() => handleDeleteExpense(e.id)} className="text-slate-400 hover:text-rose-600 transition-colors" title="Hapus">
+                                      <button onClick={() => handleDeleteExpense(e.id)} className="text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors" title="Hapus">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                       </button>
                                     </div>
@@ -2178,7 +2178,7 @@ const App: React.FC = () => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={currentUser?.role !== 'viewer' ? 7 : 6} className="px-4 py-8 text-center text-slate-400 italic">Tidak ada data pengeluaran</td>
+                              <td colSpan={currentUser?.role !== 'viewer' ? 7 : 6} className="px-4 py-8 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data pengeluaran</td>
                             </tr>
                           )}
                         </tbody>
@@ -2187,11 +2187,11 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-                  <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h3 className="text-lg font-bold text-slate-800">Riwayat Tutup Buku</h3>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Riwayat Tutup Buku</h3>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-400 uppercase">Filter Tahun:</span>
+                      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Filter Tahun:</span>
                       <Dropdown 
                         value={historyFilterYear}
                         options={[{ label: 'Semua', value: 'all' }, ...historyYearOptions.map(y => ({ label: y.toString(), value: y }))]}
@@ -2205,26 +2205,26 @@ const App: React.FC = () => {
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-slate-50 border-b border-slate-100">
+                      <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
                         <tr>
-                          <th className="px-6 py-4 font-semibold text-slate-600">Periode</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600 text-right">Pendapatan</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600 text-right">Pengeluaran</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600 text-right">Laba Bersih</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600">Alokasi</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600">Tanggal</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600">Aksi</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Periode</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Pendapatan</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Pengeluaran</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Laba Bersih</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Alokasi</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Tanggal</th>
+                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {paginatedBookClosings.length > 0 ? (
                           paginatedBookClosings.map(closing => (
-                            <tr key={closing.id} className="hover:bg-slate-50">
-                              <td className="px-6 py-4 font-medium text-slate-800">{monthNames[closing.periodMonth]} {closing.periodYear}</td>
-                              <td className="px-6 py-4 text-right text-indigo-600 font-medium">Rp {closing.totalIncome.toLocaleString('id-ID')}</td>
-                              <td className="px-6 py-4 text-right text-rose-600 font-medium">Rp {closing.totalExpense.toLocaleString('id-ID')}</td>
-                              <td className="px-6 py-4 text-right text-emerald-600 font-bold">Rp {closing.netIncome.toLocaleString('id-ID')}</td>
-                              <td className="px-6 py-4 text-xs text-slate-500">
+                            <tr key={closing.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{monthNames[closing.periodMonth]} {closing.periodYear}</td>
+                              <td className="px-6 py-4 text-right text-indigo-600 dark:text-indigo-400 font-medium">Rp {closing.totalIncome.toLocaleString('id-ID')}</td>
+                              <td className="px-6 py-4 text-right text-rose-600 dark:text-rose-400 font-medium">Rp {closing.totalExpense.toLocaleString('id-ID')}</td>
+                              <td className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">Rp {closing.netIncome.toLocaleString('id-ID')}</td>
+                              <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
                                 {closing.allocation ? (
                                   <div className="space-y-1">
                                     <div className="flex justify-between gap-4"><span>Zakat:</span> <span>{closing.allocation.zakat.toLocaleString('id-ID')}</span></div>
@@ -2235,18 +2235,18 @@ const App: React.FC = () => {
                                         setSelectedBookClosing(closing);
                                         setIsClosingDetailModalOpen(true);
                                       }}
-                                      className="text-indigo-600 hover:text-indigo-800 font-medium mt-1 underline"
+                                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium mt-1 underline"
                                     >
                                       Lihat Detail
                                     </button>
                                   </div>
                                 ) : '-'}
                               </td>
-                              <td className="px-6 py-4 text-slate-400 text-xs">{formatDateTime(closing.closedAt)}</td>
+                              <td className="px-6 py-4 text-slate-400 dark:text-slate-500 text-xs">{formatDateTime(closing.closedAt)}</td>
                               <td className="px-6 py-4 flex items-center gap-2">
                                 <button 
                                   onClick={() => exportBookClosingPDF(closing)}
-                                  className="text-indigo-500 hover:text-indigo-700 p-2 rounded-full hover:bg-indigo-50 transition-colors"
+                                  className="text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                                   title="Export PDF"
                                 >
                                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -2254,7 +2254,7 @@ const App: React.FC = () => {
                                 {currentUser?.role !== 'viewer' && (
                                   <button 
                                     onClick={() => handleDeleteBookClosing(closing.id)}
-                                    className="text-rose-500 hover:text-rose-700 p-2 rounded-full hover:bg-rose-50 transition-colors"
+                                    className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
                                     title="Hapus Riwayat"
                                   >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2265,27 +2265,27 @@ const App: React.FC = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={7} className="px-6 py-8 text-center text-slate-400 italic">Belum ada riwayat tutup buku</td>
+                            <td colSpan={7} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat tutup buku</td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                   {totalHistoryPages > 1 && (
-                    <div className="p-4 border-t border-slate-100 flex justify-between items-center">
-                      <span className="text-xs text-slate-500">Halaman {historyPage} dari {totalHistoryPages}</span>
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Halaman {historyPage} dari {totalHistoryPages}</span>
                       <div className="flex gap-2">
                         <button 
                           disabled={historyPage === 1}
                           onClick={() => setHistoryPage(p => p - 1)}
-                          className="p-2 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                          className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         </button>
                         <button 
                           disabled={historyPage === totalHistoryPages}
                           onClick={() => setHistoryPage(p => p + 1)}
-                          className="p-2 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                          className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
@@ -2298,69 +2298,69 @@ const App: React.FC = () => {
           ) : accountingTab === 'balance' ? (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group transition-colors duration-300">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
-                    <svg className="w-24 h-24 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg className="w-24 h-24 text-indigo-600 dark:text-indigo-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-slate-500 font-medium mb-2">Total Saldo Zakat</h3>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Zakat</h3>
                     {currentUser?.role !== 'viewer' && (
-                      <button type="button" onClick={() => { setSelectedWalletForTransaction('zakat'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-2 rounded-xl transition-colors shadow-sm border border-indigo-100 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Zakat">
+                      <button type="button" onClick={() => { setSelectedWalletForTransaction('zakat'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 p-2 rounded-xl transition-colors shadow-sm border border-indigo-100 dark:border-indigo-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Zakat">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         <span className="text-xs font-bold">Catat</span>
                       </button>
                     )}
                   </div>
-                  <p className="text-3xl font-bold text-indigo-600">
+                  <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
                     Rp {totalZakat.toLocaleString('id-ID')}
                   </p>
-                  <p className="text-xs text-slate-400 mt-2">Akumulasi dari seluruh periode & transaksi manual</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Akumulasi dari seluruh periode & transaksi manual</p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group transition-colors duration-300">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
-                    <svg className="w-24 h-24 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <svg className="w-24 h-24 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                   </div>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-slate-500 font-medium mb-2">Total Saldo Kas</h3>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Kas</h3>
                     {currentUser?.role !== 'viewer' && (
-                      <button type="button" onClick={() => { setSelectedWalletForTransaction('cash'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-xl transition-colors shadow-sm border border-emerald-100 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Kas">
+                      <button type="button" onClick={() => { setSelectedWalletForTransaction('cash'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 p-2 rounded-xl transition-colors shadow-sm border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Kas">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         <span className="text-xs font-bold">Catat</span>
                       </button>
                     )}
                   </div>
-                  <p className="text-3xl font-bold text-emerald-600">
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                     Rp {totalCash.toLocaleString('id-ID')}
                   </p>
-                  <p className="text-xs text-slate-400 mt-2">Akumulasi dari seluruh periode & transaksi manual</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Akumulasi dari seluruh periode & transaksi manual</p>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group transition-colors duration-300">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
-                    <svg className="w-24 h-24 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg className="w-24 h-24 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-slate-500 font-medium mb-2">Total Saldo Saving</h3>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Saving</h3>
                     {currentUser?.role !== 'viewer' && (
-                      <button type="button" onClick={() => { setSelectedWalletForTransaction('saving'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition-colors shadow-sm border border-blue-100 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Saving">
+                      <button type="button" onClick={() => { setSelectedWalletForTransaction('saving'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 p-2 rounded-xl transition-colors shadow-sm border border-blue-100 dark:border-blue-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Saving">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         <span className="text-xs font-bold">Catat</span>
                       </button>
                     )}
                   </div>
-                  <p className="text-3xl font-bold text-blue-600">
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                     Rp {totalSaving.toLocaleString('id-ID')}
                   </p>
-                  <p className="text-xs text-slate-400 mt-2">Akumulasi dari seluruh periode & transaksi manual</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Akumulasi dari seluruh periode & transaksi manual</p>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h3 className="text-lg font-bold text-slate-800">Riwayat Transaksi</h3>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Riwayat Transaksi</h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-slate-400 uppercase">Filter Tahun:</span>
+                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Filter Tahun:</span>
                     <Dropdown 
                       value={balanceFilterYear}
                       options={[{ label: 'Semua', value: 'all' }, ...balanceYearOptions.map(y => ({ label: y.toString(), value: y }))]}
@@ -2374,40 +2374,40 @@ const App: React.FC = () => {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
                       <tr>
-                        <th className="px-6 py-4 font-semibold text-slate-600">Tanggal / Periode</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600">Keterangan</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 text-right">Zakat</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 text-right">Kas</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 text-right">Saving</th>
-                        {currentUser?.role !== 'viewer' && <th className="px-6 py-4 font-semibold text-slate-600 text-center">Aksi</th>}
+                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Tanggal / Periode</th>
+                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Keterangan</th>
+                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Zakat</th>
+                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Kas</th>
+                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Saving</th>
+                        {currentUser?.role !== 'viewer' && <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {paginatedUnifiedTxs.length > 0 ? (
                         paginatedUnifiedTxs.map(tx => (
-                          <tr key={tx.id} className="hover:bg-slate-50">
-                            <td className="px-6 py-4 font-medium text-slate-800">
+                          <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">
                               {tx.dateString}
                               {tx.isManual && (
                                 <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  tx.walletType === 'zakat' ? 'bg-indigo-100 text-indigo-700' :
-                                  tx.walletType === 'cash' ? 'bg-emerald-100 text-emerald-700' :
-                                  'bg-blue-100 text-blue-700'
+                                  tx.walletType === 'zakat' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' :
+                                  tx.walletType === 'cash' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
+                                  'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                                 }`}>
                                   {tx.walletType.toUpperCase()}
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-slate-600">{tx.description}</td>
-                            <td className={`px-6 py-4 text-right font-medium ${tx.zakat > 0 ? 'text-indigo-600' : tx.zakat < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{tx.description}</td>
+                            <td className={`px-6 py-4 text-right font-medium ${tx.zakat > 0 ? 'text-indigo-600 dark:text-indigo-400' : tx.zakat < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-600'}`}>
                               {tx.zakat > 0 ? '+' : ''}{tx.zakat === 0 ? '-' : `Rp ${tx.zakat.toLocaleString('id-ID')}`}
                             </td>
-                            <td className={`px-6 py-4 text-right font-medium ${tx.cash > 0 ? 'text-emerald-600' : tx.cash < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                            <td className={`px-6 py-4 text-right font-medium ${tx.cash > 0 ? 'text-emerald-600 dark:text-emerald-400' : tx.cash < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-600'}`}>
                               {tx.cash > 0 ? '+' : ''}{tx.cash === 0 ? '-' : `Rp ${tx.cash.toLocaleString('id-ID')}`}
                             </td>
-                            <td className={`px-6 py-4 text-right font-medium ${tx.saving > 0 ? 'text-blue-600' : tx.saving < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                            <td className={`px-6 py-4 text-right font-medium ${tx.saving > 0 ? 'text-blue-600 dark:text-blue-400' : tx.saving < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-600'}`}>
                               {tx.saving > 0 ? '+' : ''}{tx.saving === 0 ? '-' : `Rp ${tx.saving.toLocaleString('id-ID')}`}
                             </td>
                             {currentUser?.role !== 'viewer' && (
@@ -2421,15 +2421,15 @@ const App: React.FC = () => {
                                         setSelectedWalletForTransaction(originalTx.wallet);
                                         setIsWalletTransactionModalOpen(true);
                                       }
-                                    }} className="text-indigo-400 hover:text-indigo-600 p-1" title="Edit Transaksi Manual">
+                                    }} className="text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 transition-colors" title="Edit Transaksi Manual">
                                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                     </button>
-                                    <button onClick={() => handleDeleteWalletTransaction(tx.manualTxId)} className="text-rose-400 hover:text-rose-600 p-1" title="Hapus Transaksi Manual">
+                                    <button onClick={() => handleDeleteWalletTransaction(tx.manualTxId)} className="text-rose-400 dark:text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 p-1 transition-colors" title="Hapus Transaksi Manual">
                                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-slate-300 italic">Otomatis</span>
+                                  <span className="text-xs text-slate-300 dark:text-slate-600 italic">Otomatis</span>
                                 )}
                               </td>
                             )}
@@ -2437,27 +2437,27 @@ const App: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={currentUser?.role !== 'viewer' ? 6 : 5} className="px-6 py-8 text-center text-slate-400 italic">Belum ada riwayat transaksi.</td>
+                          <td colSpan={currentUser?.role !== 'viewer' ? 6 : 5} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat transaksi.</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
                 {totalBalancePages > 1 && (
-                  <div className="p-4 border-t border-slate-100 flex justify-between items-center">
-                    <span className="text-xs text-slate-500">Halaman {balancePage} dari {totalBalancePages}</span>
+                  <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center transition-colors">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Halaman {balancePage} dari {totalBalancePages}</span>
                     <div className="flex gap-2">
                       <button 
                         disabled={balancePage === 1}
                         onClick={() => setBalancePage(p => p - 1)}
-                        className="p-2 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                       </button>
                       <button 
                         disabled={balancePage === totalBalancePages}
                         onClick={() => setBalancePage(p => p + 1)}
-                        className="p-2 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </button>
@@ -2467,51 +2467,51 @@ const App: React.FC = () => {
               </div>
             </div>
           ) : currentUser?.role === 'viewer' ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-800">Akses Terbatas</h3>
-              <p className="text-slate-500 mt-1">Role Viewer tidak memiliki akses ke pengaturan pembukuan.</p>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Akses Terbatas</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">Role Viewer tidak memiliki akses ke pengaturan pembukuan.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">Persentase Alokasi Laba</h3>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4">Persentase Alokasi Laba</h3>
                 
                 <div className="space-y-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-slate-700">Zakat</span>
-                      <span className="font-bold text-slate-900">2.5%</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Zakat</span>
+                      <span className="font-bold text-slate-900 dark:text-white">2.5%</span>
                     </div>
-                    <p className="text-xs text-slate-500">Diambil dari Laba Bersih sebelum alokasi lainnya.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Diambil dari Laba Bersih sebelum alokasi lainnya.</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Kas (%)</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kas (%)</label>
                     <input 
                       type="number" 
                       value={cashPercentage} 
                       onChange={(e) => setCashPercentage(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Saving (%)</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Saving (%)</label>
                     <input 
                       type="number" 
                       value={savingPercentage} 
                       onChange={(e) => setSavingPercentage(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                     />
                   </div>
                   
-                  <div className="pt-4 border-t border-slate-100">
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button 
                       onClick={handleSaveSettings}
-                      className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors"
+                      className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 dark:shadow-none"
                     >
                       Simpan Pengaturan
                     </button>
@@ -2519,8 +2519,8 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">Penerima Dividen</h3>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4">Penerima Dividen</h3>
                 
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -2529,7 +2529,7 @@ const App: React.FC = () => {
                       placeholder="Nama Penerima" 
                       value={newRecipientName}
                       onChange={(e) => setNewRecipientName(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="flex-1 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                     />
                     <div className="flex gap-2">
                       <input 
@@ -2537,11 +2537,11 @@ const App: React.FC = () => {
                         placeholder="%" 
                         value={newRecipientPercentage || ''}
                         onChange={(e) => setNewRecipientPercentage(Number(e.target.value))}
-                        className="w-20 px-4 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-20 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                       />
                       <button 
                         onClick={handleAddRecipient}
-                        className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-colors flex-1 sm:flex-none flex justify-center items-center"
+                        className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-colors flex-1 sm:flex-none flex justify-center items-center shadow-lg shadow-emerald-200 dark:shadow-none"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       </button>
@@ -2550,21 +2550,21 @@ const App: React.FC = () => {
 
                   <div className="space-y-2">
                     {dividendRecipients.map(recipient => (
-                      <div key={recipient.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div key={recipient.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors">
                         <div>
-                          <p className="font-medium text-slate-800">{recipient.name}</p>
-                          <p className="text-xs text-slate-500">{recipient.percentage}% Share</p>
+                          <p className="font-medium text-slate-800 dark:text-slate-200">{recipient.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{recipient.percentage}% Share</p>
                         </div>
                         <button 
                           onClick={() => handleDeleteRecipient(recipient.id)}
-                          className="text-rose-400 hover:text-rose-600 p-2"
+                          className="text-rose-400 dark:text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 p-2 transition-colors"
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
                     ))}
                     {dividendRecipients.length === 0 && (
-                      <p className="text-center text-slate-400 italic py-4">Belum ada penerima dividen</p>
+                      <p className="text-center text-slate-400 dark:text-slate-600 italic py-4">Belum ada penerima dividen</p>
                     )}
                   </div>
                 </div>
@@ -2756,9 +2756,9 @@ const App: React.FC = () => {
         {isAddOtherIncomeModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-              <button onClick={() => setIsAddOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-              <h3 className="text-lg font-bold">Catat Pemasukan Lain</h3>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <button onClick={() => setIsAddOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Catat Pemasukan Lain</h3>
               <form onSubmit={(e) => {
                 e.preventDefault();
                 withLoading(() => {
@@ -2789,35 +2789,35 @@ const App: React.FC = () => {
                 });
               }} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                  <input type="text" name="category" placeholder="Contoh: Penjualan Aset, Hibah" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
+                  <input type="text" name="category" placeholder="Contoh: Penjualan Aset, Hibah" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                  <input type="text" name="description" placeholder="Deskripsi pemasukan" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                  <input type="text" name="description" placeholder="Deskripsi pemasukan" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (Rp)</label>
-                  <input type="number" name="amount" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah (Rp)</label>
+                  <input type="number" name="amount" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                  <input type="date" name="date" defaultValue={getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                  <input type="date" name="date" defaultValue={getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Tambahan</label>
-                  <textarea name="notes" className="w-full px-4 py-3 rounded-xl border outline-none" rows={2}></textarea>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan Tambahan</label>
+                  <textarea name="notes" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" rows={2}></textarea>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                   <input type="checkbox" name="allocateToWallet" id="allocateToWallet2" defaultChecked className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500" />
-                  <label htmlFor="allocateToWallet2" className="text-sm text-slate-700 cursor-pointer select-none">
+                  <label htmlFor="allocateToWallet2" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                     Masukan ke Alokasi Dompet (Zakat, Kas, Saving)
-                    <p className="text-xs text-slate-500 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
                   </label>
                 </div>
                 
-                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Simpan</button>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
               </form>
             </div>
             </div>
@@ -2828,24 +2828,24 @@ const App: React.FC = () => {
         {isAddExpenseModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-              <button onClick={() => setIsAddExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-              <h3 className="text-lg font-bold">Catat Pengeluaran</h3>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <button onClick={() => setIsAddExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Catat Pengeluaran</h3>
               <form onSubmit={handleAddExpense} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                  <input type="text" name="description" placeholder="Keterangan" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                  <input type="text" name="description" placeholder="Keterangan" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
-                  <input type="number" name="amount" placeholder="Jumlah (Rp)" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah</label>
+                  <input type="number" name="amount" placeholder="Jumlah (Rp)" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                  <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                  <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Wilayah (Opsional)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah (Opsional)</label>
                   <Dropdown 
                     name="area" 
                     value={formAddExpenseArea} 
@@ -2855,7 +2855,7 @@ const App: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <Dropdown 
@@ -2866,14 +2866,14 @@ const App: React.FC = () => {
                         placeholder="Pilih Kategori"
                       />
                     </div>
-                    <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 rounded-xl hover:bg-slate-200 font-bold text-slate-600">+</button>
+                    <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-slate-600 dark:text-slate-400 transition-colors">+</button>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700">Bukti Pembayaran</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bukti Pembayaran</label>
                   <div className="flex items-center gap-4">
-                    <div className="relative w-40 h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 group">
+                    <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group">
                       {uploadedFileBase64 ? (
                         <>
                           <img src={getDirectDriveLink(uploadedFileBase64)} alt="Preview" className="w-full h-full object-cover" />
@@ -2890,18 +2890,18 @@ const App: React.FC = () => {
                           </button>
                         </>
                       ) : (
-                        <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       )}
                     </div>
-                    <label className={`cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <label className={`cursor-pointer bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       {isUploading ? 'Mengunggah...' : 'Upload Foto'}
                       <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
                     </label>
                   </div>
                 </div>
 
-                <button type="submit" disabled={isUploading} className={`w-full bg-rose-600 text-white font-bold py-3 rounded-xl ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>Simpan</button>
-                <button type="button" onClick={() => setIsAddExpenseModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+                <button type="submit" disabled={isUploading} className={`w-full bg-rose-600 text-white font-bold py-3 rounded-xl hover:bg-rose-700 transition-colors shadow-md shadow-rose-600/20 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>Simpan</button>
+                <button type="button" onClick={() => setIsAddExpenseModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
               </form>
             </div>
             </div>
@@ -2912,16 +2912,16 @@ const App: React.FC = () => {
         {isAddCategoryModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative">
-              <button onClick={() => setIsAddCategoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-              <h3 className="text-lg font-bold">Kategori Baru</h3>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <button onClick={() => setIsAddCategoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Kategori Baru</h3>
               <form onSubmit={handleAddCategory} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Kategori</label>
-                  <input type="text" name="categoryName" placeholder="Nama Kategori" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Kategori</label>
+                  <input type="text" name="categoryName" placeholder="Nama Kategori" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
-                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-                <button type="button" onClick={() => setIsAddCategoryModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
+                <button type="button" onClick={() => setIsAddCategoryModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
               </form>
             </div>
             </div>
@@ -2932,12 +2932,12 @@ const App: React.FC = () => {
         {isConfirmCloseBookModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200 relative">
-                <button onClick={() => setIsConfirmCloseBookModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+                <button onClick={() => setIsConfirmCloseBookModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                 
                 <div>
-                  <h3 className="text-xl font-bold text-slate-800">Konfirmasi Tutup Buku</h3>
-                  <p className="text-slate-500 text-sm mt-1">Periode: {monthNames[reportMonth]} {reportYear}</p>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Konfirmasi Tutup Buku</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Periode: {monthNames[reportMonth]} {reportYear}</p>
                 </div>
 
                 {(() => {
@@ -2981,74 +2981,74 @@ const App: React.FC = () => {
 
                   return (
                     <div className="space-y-4">
-                      <div className="bg-slate-50 p-4 rounded-xl space-y-3 border border-slate-100">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-3 border border-slate-100 dark:border-slate-800">
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Total Pemasukan</span>
-                          <span className="font-bold text-indigo-600">Rp {income.toLocaleString('id-ID')}</span>
+                          <span className="text-slate-600 dark:text-slate-400">Total Pemasukan</span>
+                          <span className="font-bold text-indigo-600 dark:text-indigo-400">Rp {income.toLocaleString('id-ID')}</span>
                         </div>
                         {dividendOnlyOtherIncome > 0 && (
-                          <div className="flex justify-between text-xs pl-3 border-l-2 border-indigo-200 ml-1">
-                             <span className="text-slate-500">Non-Alokasi (Langsung Dividen)</span>
-                             <span className="font-medium text-slate-700">Rp {dividendOnlyOtherIncome.toLocaleString('id-ID')}</span>
+                          <div className="flex justify-between text-xs pl-3 border-l-2 border-indigo-200 dark:border-indigo-800 ml-1">
+                             <span className="text-slate-500 dark:text-slate-500">Non-Alokasi (Langsung Dividen)</span>
+                             <span className="font-medium text-slate-700 dark:text-slate-300">Rp {dividendOnlyOtherIncome.toLocaleString('id-ID')}</span>
                           </div>
                         )}
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Total Pengeluaran</span>
-                          <span className="font-bold text-rose-600">Rp {expense.toLocaleString('id-ID')}</span>
+                          <span className="text-slate-600 dark:text-slate-400">Total Pengeluaran</span>
+                          <span className="font-bold text-rose-600 dark:text-rose-400">Rp {expense.toLocaleString('id-ID')}</span>
                         </div>
-                        <div className="border-t border-slate-200 pt-2 flex justify-between font-bold">
-                          <span className="text-slate-800">Laba Bersih</span>
-                          <span className={netIncome >= 0 ? "text-emerald-600" : "text-rose-600"}>Rp {netIncome.toLocaleString('id-ID')}</span>
+                        <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between font-bold">
+                          <span className="text-slate-800 dark:text-white">Laba Bersih</span>
+                          <span className={netIncome >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>Rp {netIncome.toLocaleString('id-ID')}</span>
                         </div>
                       </div>
 
                       {netIncome > 0 && (
                         <div className="space-y-3">
-                          <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Alokasi Laba</h4>
+                          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Alokasi Laba</h4>
                           <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                              <p className="text-emerald-600 text-xs font-bold mb-1">Zakat (2.5%)</p>
-                              <p className="font-bold text-emerald-800">Rp {zakatAmount.toLocaleString('id-ID')}</p>
+                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/50">
+                              <p className="text-emerald-600 dark:text-emerald-400 text-xs font-bold mb-1">Zakat (2.5%)</p>
+                              <p className="font-bold text-emerald-800 dark:text-emerald-200">Rp {zakatAmount.toLocaleString('id-ID')}</p>
                             </div>
-                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 relative group cursor-pointer hover:bg-blue-100 transition-colors" onClick={() => {
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/50 relative group cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onClick={() => {
                               setEditAllocationType('cash');
                               setTempAllocationAmount(Math.round(cashAmount).toString());
                               setIsEditAllocationModalOpen(true);
                             }}>
                               <div className="flex justify-between items-start">
-                                <p className="text-blue-600 text-xs font-bold mb-1">Kas ({manualCashAmount !== null ? 'Manual' : `${cashPercentage}%`})</p>
+                                <p className="text-blue-600 dark:text-blue-400 text-xs font-bold mb-1">Kas ({manualCashAmount !== null ? 'Manual' : `${cashPercentage}%`})</p>
                                 <svg className="w-3 h-3 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                               </div>
-                              <p className="font-bold text-blue-800">Rp {cashAmount.toLocaleString('id-ID')}</p>
+                              <p className="font-bold text-blue-800 dark:text-blue-200">Rp {cashAmount.toLocaleString('id-ID')}</p>
                             </div>
-                            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 relative group cursor-pointer hover:bg-amber-100 transition-colors" onClick={() => {
+                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/50 relative group cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors" onClick={() => {
                               setEditAllocationType('saving');
                               setTempAllocationAmount(Math.round(savingAmount).toString());
                               setIsEditAllocationModalOpen(true);
                             }}>
                               <div className="flex justify-between items-start">
-                                <p className="text-amber-600 text-xs font-bold mb-1">Tabungan ({manualSavingAmount !== null ? 'Manual' : `${savingPercentage}%`})</p>
+                                <p className="text-amber-600 dark:text-amber-400 text-xs font-bold mb-1">Tabungan ({manualSavingAmount !== null ? 'Manual' : `${savingPercentage}%`})</p>
                                 <svg className="w-3 h-3 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                               </div>
-                              <p className="font-bold text-amber-800">Rp {savingAmount.toLocaleString('id-ID')}</p>
+                              <p className="font-bold text-amber-800 dark:text-amber-200">Rp {savingAmount.toLocaleString('id-ID')}</p>
                             </div>
-                            <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                              <p className="text-purple-600 text-xs font-bold mb-1">Dividen</p>
-                              <p className="font-bold text-purple-800">Rp {dividendPool.toLocaleString('id-ID')}</p>
+                            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800/50">
+                              <p className="text-purple-600 dark:text-purple-400 text-xs font-bold mb-1">Dividen</p>
+                              <p className="font-bold text-purple-800 dark:text-purple-200">Rp {dividendPool.toLocaleString('id-ID')}</p>
                             </div>
                           </div>
                           
                           {dividendPool > 0 && (
-                            <div className="mt-3 pt-3 border-t border-slate-200">
-                              <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">Rincian Dividen</h5>
+                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                              <h5 className="text-xs font-bold text-slate-500 dark:text-slate-500 uppercase mb-2">Rincian Dividen</h5>
                               <div className="space-y-1">
                                 {dividendRecipients.map(recipient => {
                                    const totalPercentage = dividendRecipients.reduce((acc, r) => acc + r.percentage, 0);
                                    const amount = totalPercentage > 0 ? (recipient.percentage / totalPercentage) * dividendPool : 0;
                                    return (
                                      <div key={recipient.id} className="flex justify-between text-sm">
-                                       <span className="text-slate-600">{recipient.name} ({recipient.percentage}%)</span>
-                                       <span className="font-medium text-slate-800">Rp {amount.toLocaleString('id-ID')}</span>
+                                       <span className="text-slate-600 dark:text-slate-400">{recipient.name} ({recipient.percentage}%)</span>
+                                       <span className="font-medium text-slate-800 dark:text-slate-200">Rp {amount.toLocaleString('id-ID')}</span>
                                      </div>
                                    );
                                 })}
@@ -3059,7 +3059,7 @@ const App: React.FC = () => {
                       )}
 
                       {netIncome <= 0 && (
-                        <div className="p-4 bg-rose-50 text-rose-700 rounded-xl text-sm border border-rose-100 flex items-start gap-2">
+                        <div className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 rounded-xl text-sm border border-rose-100 dark:border-rose-800/50 flex items-start gap-2">
                           <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                           <p>Laba bersih nol atau negatif. Tidak ada alokasi dana yang akan dilakukan.</p>
                         </div>
@@ -3068,13 +3068,13 @@ const App: React.FC = () => {
                       <div className="flex gap-3 pt-2">
                         <button 
                           onClick={() => setIsConfirmCloseBookModalOpen(false)} 
-                          className="flex-1 py-3 px-4 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+                          className="flex-1 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                         >
                           Batal
                         </button>
                         <button 
                           onClick={processBookClosing} 
-                          className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
+                          className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
                         >
                           Konfirmasi
                         </button>
@@ -3091,9 +3091,9 @@ const App: React.FC = () => {
         {isEditAllocationModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative animate-in zoom-in-95 duration-200">
-                <button onClick={() => setIsEditAllocationModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                <h3 className="text-lg font-bold">Edit Alokasi {editAllocationType === 'cash' ? 'Kas' : 'Tabungan'}</h3>
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+                <button onClick={() => setIsEditAllocationModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Alokasi {editAllocationType === 'cash' ? 'Kas' : 'Tabungan'}</h3>
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   const amount = Number(tempAllocationAmount);
@@ -3105,12 +3105,12 @@ const App: React.FC = () => {
                   setIsEditAllocationModalOpen(false);
                 }} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (Rp)</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah (Rp)</label>
                     <input 
                       type="number" 
                       value={tempAllocationAmount} 
                       onChange={(e) => setTempAllocationAmount(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border outline-none" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" 
                       autoFocus
                     />
                   </div>
@@ -3125,11 +3125,11 @@ const App: React.FC = () => {
                         }
                         setIsEditAllocationModalOpen(false);
                       }}
-                      className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                      className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                     >
                       Reset Default
                     </button>
-                    <button type="submit" className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Simpan</button>
+                    <button type="submit" className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
                   </div>
                 </form>
               </div>
@@ -3141,41 +3141,41 @@ const App: React.FC = () => {
       {isWalletTransactionModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => { setIsWalletTransactionModalOpen(false); setEditingWalletTransaction(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">{editingWalletTransaction ? 'Edit' : 'Catat'} Transaksi Dompet {selectedWalletForTransaction.toUpperCase()}</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => { setIsWalletTransactionModalOpen(false); setEditingWalletTransaction(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">{editingWalletTransaction ? 'Edit' : 'Catat'} Transaksi Dompet {selectedWalletForTransaction.toUpperCase()}</h3>
             <form onSubmit={handleSaveWalletTransaction} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Jenis Transaksi</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Jenis Transaksi</label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="cursor-pointer">
                     <input type="radio" name="type" value="income" className="peer sr-only" defaultChecked={!editingWalletTransaction || editingWalletTransaction.type === 'income'} />
-                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-medium text-slate-600 transition-all hover:bg-slate-50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700">
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-center font-medium text-slate-600 dark:text-slate-400 transition-all hover:bg-slate-50 dark:hover:bg-slate-700 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/20 peer-checked:text-emerald-700 dark:peer-checked:text-emerald-400">
                       Pemasukan (+)
                     </div>
                   </label>
                   <label className="cursor-pointer">
                     <input type="radio" name="type" value="expense" className="peer sr-only" defaultChecked={editingWalletTransaction?.type === 'expense'} />
-                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-medium text-slate-600 transition-all hover:bg-slate-50 peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-700">
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-center font-medium text-slate-600 dark:text-slate-400 transition-all hover:bg-slate-50 dark:hover:bg-slate-700 peer-checked:border-rose-500 peer-checked:bg-rose-50 dark:peer-checked:bg-rose-900/20 peer-checked:text-rose-700 dark:peer-checked:text-rose-400">
                       Pengeluaran (-)
                     </div>
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" defaultValue={editingWalletTransaction?.description} placeholder="Contoh: Penyaluran Zakat, Tambahan Kas" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" defaultValue={editingWalletTransaction?.description} placeholder="Contoh: Penyaluran Zakat, Tambahan Kas" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (Rp)</label>
-                <input type="number" name="amount" defaultValue={editingWalletTransaction?.amount} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah (Rp)</label>
+                <input type="number" name="amount" defaultValue={editingWalletTransaction?.amount} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={editingWalletTransaction ? getLocalDateString(editingWalletTransaction.date) : getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={editingWalletTransaction ? getLocalDateString(editingWalletTransaction.date) : getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div className="pt-2">
-                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Simpan Transaksi</button>
+                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan Transaksi</button>
               </div>
             </form>
             </div>
@@ -3187,40 +3187,40 @@ const App: React.FC = () => {
       {isEditOtherIncomeModalOpen && selectedOtherIncome && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Pemasukan Lain</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Pemasukan Lain</h3>
             <form onSubmit={handleUpdateOtherIncome} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                <input type="text" name="category" defaultValue={selectedOtherIncome.category} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
+                <input type="text" name="category" defaultValue={selectedOtherIncome.category} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" defaultValue={selectedOtherIncome.description} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" defaultValue={selectedOtherIncome.description} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (Rp)</label>
-                <input type="number" name="amount" defaultValue={selectedOtherIncome.amount} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah (Rp)</label>
+                <input type="number" name="amount" defaultValue={selectedOtherIncome.amount} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={getLocalDateString(selectedOtherIncome.date)} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={getLocalDateString(selectedOtherIncome.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Tambahan</label>
-                <textarea name="notes" defaultValue={selectedOtherIncome.notes} className="w-full px-4 py-3 rounded-xl border outline-none" rows={2}></textarea>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan Tambahan</label>
+                <textarea name="notes" defaultValue={selectedOtherIncome.notes} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" rows={2}></textarea>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
                 <input type="checkbox" name="allocateToWallet" id="allocateToWalletEdit" defaultChecked={selectedOtherIncome.allocateToWallet} className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500" />
-                <label htmlFor="allocateToWalletEdit" className="text-sm text-slate-700 cursor-pointer select-none">
+                <label htmlFor="allocateToWalletEdit" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                   Masukan ke Alokasi Dompet (Zakat, Kas, Saving)
-                  <p className="text-xs text-slate-500 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
                 </label>
               </div>
               
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Simpan Perubahan</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan Perubahan</button>
             </form>
           </div>
           </div>
@@ -3231,24 +3231,24 @@ const App: React.FC = () => {
       {isEditExpenseModalOpen && selectedExpense && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Pengeluaran</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditExpenseModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Pengeluaran</h3>
             <form onSubmit={handleUpdateExpense} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" defaultValue={selectedExpense.description} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" defaultValue={selectedExpense.description} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah</label>
-                <input type="number" name="amount" defaultValue={selectedExpense.amount} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah</label>
+                <input type="number" name="amount" defaultValue={selectedExpense.amount} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={getLocalDateString(selectedExpense.date)} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={getLocalDateString(selectedExpense.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Wilayah (Opsional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah (Opsional)</label>
                 <Dropdown 
                   name="area" 
                   value={formEditExpenseArea} 
@@ -3258,7 +3258,7 @@ const App: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Dropdown 
@@ -3269,14 +3269,14 @@ const App: React.FC = () => {
                       placeholder="Pilih Kategori"
                     />
                   </div>
-                  <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 rounded-xl hover:bg-slate-200 font-bold text-slate-600">+</button>
+                  <button type="button" onClick={() => setIsAddCategoryModalOpen(true)} className="px-4 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-slate-600 dark:text-slate-400 transition-colors">+</button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Bukti Pembayaran</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bukti Pembayaran</label>
                 <div className="flex items-center gap-4">
-                  <div className="relative w-40 h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 group">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group">
                     {(uploadedFileBase64 || selectedExpense.proofUrl) ? (
                       <>
                         <img src={getDirectDriveLink(uploadedFileBase64 || selectedExpense.proofUrl || '')} alt="Preview" className="w-full h-full object-cover" />
@@ -3293,18 +3293,18 @@ const App: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     )}
                   </div>
-                  <label className={`cursor-pointer bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     {isUploading ? 'Mengunggah...' : 'Upload Foto'}
                     <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
                   </label>
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Update</button>
-              <button type="button" onClick={() => setIsEditExpenseModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">Update</button>
+              <button type="button" onClick={() => setIsEditExpenseModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -3315,24 +3315,24 @@ const App: React.FC = () => {
       {isChangePinModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative">
-            <button onClick={() => setIsChangePinModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Ganti PIN</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsChangePinModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Ganti PIN</h3>
             <form onSubmit={handleChangePin} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">PIN Lama</label>
-                <input type="password" name="oldPin" placeholder="PIN Lama" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PIN Lama</label>
+                <input type="password" name="oldPin" placeholder="PIN Lama" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">PIN Baru</label>
-                <input type="password" name="newPin" placeholder="PIN Baru" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PIN Baru</label>
+                <input type="password" name="newPin" placeholder="PIN Baru" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Konfirmasi PIN Baru</label>
-                <input type="password" name="confirmPin" placeholder="Konfirmasi PIN Baru" required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Konfirmasi PIN Baru</label>
+                <input type="password" name="confirmPin" placeholder="Konfirmasi PIN Baru" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl">Simpan</button>
-              <button type="button" onClick={() => setIsChangePinModalOpen(false)} className="w-full text-slate-400 py-2">Batal</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
+              <button type="button" onClick={() => setIsChangePinModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
           </div>
           </div>
@@ -3359,9 +3359,9 @@ const App: React.FC = () => {
       {/* Global Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[200] flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4 border border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-bold text-slate-800">Memproses...</p>
+            <p className="font-bold text-slate-800 dark:text-white">Memproses...</p>
           </div>
         </div>
       )}
@@ -4560,40 +4560,40 @@ const App: React.FC = () => {
       {isEditOtherIncomeModalOpen && selectedOtherIncome && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 relative">
-            <button onClick={() => setIsEditOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold">Edit Pemasukan Lain</h3>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => setIsEditOtherIncomeModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Pemasukan Lain</h3>
             <form onSubmit={handleUpdateOtherIncome} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                <input type="text" name="category" defaultValue={selectedOtherIncome.category} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kategori</label>
+                <input type="text" name="category" defaultValue={selectedOtherIncome.category} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" name="description" defaultValue={selectedOtherIncome.description} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Keterangan</label>
+                <input type="text" name="description" defaultValue={selectedOtherIncome.description} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah (Rp)</label>
-                <input type="number" name="amount" defaultValue={selectedOtherIncome.amount} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah (Rp)</label>
+                <input type="number" name="amount" defaultValue={selectedOtherIncome.amount} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="date" name="date" defaultValue={getLocalDateString(selectedOtherIncome.date)} required className="w-full px-4 py-3 rounded-xl border outline-none" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
+                <input type="date" name="date" defaultValue={getLocalDateString(selectedOtherIncome.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Tambahan</label>
-                <textarea name="notes" defaultValue={selectedOtherIncome.notes} className="w-full px-4 py-3 rounded-xl border outline-none" rows={2}></textarea>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan Tambahan</label>
+                <textarea name="notes" defaultValue={selectedOtherIncome.notes} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" rows={2}></textarea>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
                 <input type="checkbox" name="allocateToWallet" id="allocateToWalletEdit" defaultChecked={selectedOtherIncome.allocateToWallet} className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500" />
-                <label htmlFor="allocateToWalletEdit" className="text-sm text-slate-700 cursor-pointer select-none">
+                <label htmlFor="allocateToWalletEdit" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
                   Masukan ke Alokasi Dompet (Zakat, Kas, Saving)
-                  <p className="text-xs text-slate-500 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">Jika tidak dicentang, hanya akan dimasukkan sebagai dividen.</p>
                 </label>
               </div>
               
-              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">Simpan Perubahan</button>
+              <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan Perubahan</button>
             </form>
           </div>
           </div>
