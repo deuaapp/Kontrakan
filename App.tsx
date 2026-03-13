@@ -719,10 +719,12 @@ const App: React.FC = () => {
       });
     }
     
-    // Filter expenses by date
+    // Filter expenses by date and appMode
     const expenses = data.expenses.filter(e => {
       const d = new Date(e.date);
-      return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
+      const matchesDate = d.getMonth() === reportMonth && d.getFullYear() === reportYear;
+      if (!matchesDate) return false;
+      return appMode === 'accounting' || e.area;
     });
 
     const totalIncome = income.reduce((acc, curr) => acc + curr.amount, 0);
@@ -1368,7 +1370,7 @@ const App: React.FC = () => {
       }
 
       const area = formData.get('area') as string;
-      if (currentUser?.role !== 'admin' && !area) {
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'accountant' && !area) {
         showToast('Wilayah wajib diisi', 'error');
         return;
       }
@@ -1414,7 +1416,7 @@ const App: React.FC = () => {
       }
 
       const area = formData.get('area') as string;
-      if (currentUser?.role !== 'admin' && !area) {
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'accountant' && !area) {
         showToast('Wilayah wajib diisi', 'error');
         return;
       }
@@ -1586,7 +1588,9 @@ const App: React.FC = () => {
   };
 
   const totalIncome = data.payments.reduce((acc, p) => acc + p.amount, 0);
-  const totalExpenses = data.expenses.reduce((acc, e) => acc + e.amount, 0);
+  const totalExpenses = data.expenses
+    .filter(e => appMode === 'accounting' || e.area)
+    .reduce((acc, e) => acc + e.amount, 0);
   const netIncome = totalIncome - totalExpenses;
 
   // Filter and Paginate Book Closing History
@@ -1747,28 +1751,32 @@ const App: React.FC = () => {
   if (appMode === 'accounting') {
     return (
       <div className="h-screen flex bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans transition-colors duration-300">
-        <aside className={`hidden md:flex flex-col bg-slate-900 text-white transition-all duration-300 relative ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-          <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
-            <Logo size="md" variant="dark" />
-            {!isSidebarCollapsed && (
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-emerald-400">Pembukuan</h1>
-                <p className="text-xs text-slate-400 mt-1">Sistem Akuntansi AMG</p>
+        {/* Sidebar - Desktop */}
+        <aside className={`hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out relative z-40 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+          <button 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="absolute -right-3 top-7 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-200 shadow-sm transition-all z-[60]"
+            title={isSidebarCollapsed ? "Expand" : "Collapse"}
+          >
+            <svg className={`w-4 h-4 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <div className="h-20 flex items-center px-6 border-b border-slate-50 dark:border-slate-800 overflow-hidden relative">
+            <div className="flex items-center gap-3 shrink-0">
+              <Logo size="md" variant="colored" />
+              <div className={`transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-32 opacity-100'}`}>
+                <h1 className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Pembukuan</h1>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">Sistem Akuntansi AMG</p>
               </div>
-            )}
-            <button 
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors ${isSidebarCollapsed ? 'mx-auto' : 'ml-auto'}`}
-            >
-              <svg className={`w-5 h-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              </svg>
-            </button>
+            </div>
           </div>
-          <nav className="flex-1 px-3 space-y-1 mt-4 overflow-hidden">
+          
+          <nav className="flex-1 px-3 space-y-1 mt-6 overflow-y-auto no-scrollbar">
             <button
               onClick={() => setAccountingTab('closing')}
-              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${accountingTab === 'closing' ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'closing' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
               title={isSidebarCollapsed ? "Tutup Buku" : ""}
             >
               <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></span>
@@ -1776,7 +1784,7 @@ const App: React.FC = () => {
             </button>
             <button
               onClick={() => setAccountingTab('balance')}
-              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${accountingTab === 'balance' ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'balance' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
               title={isSidebarCollapsed ? "Saldo" : ""}
             >
               <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
@@ -1785,7 +1793,7 @@ const App: React.FC = () => {
             {currentUser?.role !== 'viewer' && (
               <button
                 onClick={() => setAccountingTab('settings')}
-                className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-colors ${accountingTab === 'settings' ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'settings' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
                 title={isSidebarCollapsed ? "Pengaturan" : ""}
               >
                 <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></span>
@@ -1793,60 +1801,109 @@ const App: React.FC = () => {
               </button>
             )}
           </nav>
-          <div className="p-4 border-t border-slate-800">
+          <div className="p-4 border-t border-slate-50 dark:border-slate-800 space-y-1">
+            <button 
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
+              title={isSidebarCollapsed ? (theme === 'light' ? "Mode Gelap" : "Mode Terang") : ""}
+            >
+              <span className="shrink-0 transition-transform duration-300 group-hover:rotate-12">
+                {theme === 'light' ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                )}
+              </span>
+              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                <span className="font-medium whitespace-nowrap">{theme === 'light' ? "Mode Gelap" : "Mode Terang"}</span>
+              </div>
+            </button>
             {currentUser?.role !== 'accountant' && (
               <button 
                 onClick={() => setShowPortal(true)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800 hover:text-white w-full mb-2"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
                 title={isSidebarCollapsed ? "Ganti Aplikasi" : ""}
               >
-                <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></span>
-                {!isSidebarCollapsed && <span className="font-medium">Ganti Aplikasi</span>}
+                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></span>
+                <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                  <span className="font-medium whitespace-nowrap">Ganti Aplikasi</span>
+                </div>
               </button>
             )}
             <button 
               onClick={() => setIsChangePinModalOpen(true)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800 hover:text-white w-full mb-2"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
               title={isSidebarCollapsed ? "Ganti PIN" : ""}
             >
-              <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-3l8.44-8.44A6 6 0 0115 7h.01" /></svg></span>
-              {!isSidebarCollapsed && <span className="font-medium">Ganti PIN</span>}
+              <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </span>
+              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                <span className="font-medium whitespace-nowrap">Ganti PIN</span>
+              </div>
             </button>
             <button 
-              onClick={() => setIsLoggedIn(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-rose-400 hover:bg-slate-800 hover:text-rose-300 w-full"
+              onClick={() => {
+                setIsLoggedIn(false);
+                setCurrentUser(null);
+                localStorage.removeItem('amg_isLoggedIn');
+                localStorage.removeItem('amg_currentUser');
+              }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 w-full group`}
               title={isSidebarCollapsed ? "Keluar" : ""}
             >
-              <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
-              {!isSidebarCollapsed && <span className="font-medium">Keluar</span>}
+              <span className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
+              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                <span className="font-medium whitespace-nowrap">Keluar</span>
+              </div>
             </button>
           </div>
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile Header */}
-          <header className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center sticky top-0 z-30 shadow-sm">
-            <span className="font-bold text-slate-800 text-lg">Pembukuan</span>
-            <div className="flex items-center gap-2">
+          <header className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex justify-between items-center sticky top-0 z-30 shadow-sm transition-colors duration-300">
+            <span className="font-bold text-slate-800 dark:text-white text-lg">Pembukuan</span>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                title={theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+              >
+                {theme === 'light' ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                )}
+              </button>
               <button 
                 onClick={() => setIsChangePinModalOpen(true)}
-                className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                 title="Ganti PIN"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-3l8.44-8.44A6 6 0 0115 7h.01" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
               </button>
               {currentUser?.role !== 'accountant' && (
                 <button 
                   onClick={() => setShowPortal(true)}
-                  className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                  className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                   title="Ganti Aplikasi"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
               )}
               <button 
-                onClick={() => setIsLoggedIn(false)}
-                className="p-2 text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setCurrentUser(null);
+                  localStorage.removeItem('amg_isLoggedIn');
+                  localStorage.removeItem('amg_currentUser');
+                }}
+                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors"
                 title="Keluar"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -2845,13 +2902,13 @@ const App: React.FC = () => {
                   <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah (Opsional)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah {(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}</label>
                   <Dropdown 
                     name="area" 
                     value={formAddExpenseArea} 
                     onChange={(val) => setFormAddExpenseArea(String(val))} 
                     options={data.areas.map(area => ({ label: area, value: area }))} 
-                    placeholder="Pilih Wilayah (Opsional)"
+                    placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                   />
                 </div>
                 <div>
@@ -3248,13 +3305,13 @@ const App: React.FC = () => {
                 <input type="date" name="date" defaultValue={getLocalDateString(selectedExpense.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah (Opsional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah {(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}</label>
                 <Dropdown 
                   name="area" 
                   value={formEditExpenseArea} 
                   onChange={(val) => setFormEditExpenseArea(String(val))} 
                   options={data.areas.filter(area => hasWriteAccessToArea(area)).map(area => ({ label: area, value: area }))} 
-                  placeholder="Pilih Wilayah (Opsional)"
+                  placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                 />
               </div>
               <div>
@@ -3465,7 +3522,8 @@ const App: React.FC = () => {
             onClick={() => {
               setIsLoggedIn(false);
               setCurrentUser(null);
-              localStorage.clear();
+              localStorage.removeItem('amg_isLoggedIn');
+              localStorage.removeItem('amg_currentUser');
             }}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 w-full group`}
             title={isSidebarCollapsed ? "Keluar" : ""}
@@ -3545,7 +3603,8 @@ const App: React.FC = () => {
                 onClick={() => {
                   setIsLoggedIn(false);
                   setCurrentUser(null);
-                  localStorage.clear();
+                  localStorage.removeItem('amg_isLoggedIn');
+                  localStorage.removeItem('amg_currentUser');
                 }}
                 className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors"
                 title="Keluar"
@@ -3985,6 +4044,9 @@ const App: React.FC = () => {
                           const matchesDate = d.getMonth() === transactionFilterMonth && d.getFullYear() === transactionFilterYear;
                           if (!matchesDate) return false;
 
+                          // Hide expenses without area in transaction mode
+                          if (appMode !== 'accounting' && !ex.area) return false;
+
                           if (transactionSelectedAreas.length > 0) {
                             return ex.area && transactionSelectedAreas.includes(ex.area);
                           }
@@ -4028,6 +4090,9 @@ const App: React.FC = () => {
                           const d = new Date(ex.date);
                           const matchesDate = d.getMonth() === transactionFilterMonth && d.getFullYear() === transactionFilterYear;
                           if (!matchesDate) return false;
+                          
+                          // Hide expenses without area in transaction mode
+                          if (appMode !== 'accounting' && !ex.area) return false;
 
                           if (transactionSelectedAreas.length > 0) {
                             return ex.area && transactionSelectedAreas.includes(ex.area);
@@ -4720,13 +4785,13 @@ const App: React.FC = () => {
                 <input type="date" name="date" required defaultValue={getLocalDateString()} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah {currentUser?.role === 'admin' ? '(Opsional)' : ''}</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah {(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}</label>
                 <Dropdown 
                   name="area" 
                   value={formAddExpenseArea} 
                   onChange={(val) => setFormAddExpenseArea(String(val))} 
                   options={data.areas.filter(area => hasWriteAccessToArea(area)).map(area => ({ label: area, value: area }))} 
-                  placeholder={`Pilih Wilayah ${currentUser?.role === 'admin' ? '(Opsional)' : ''}`}
+                  placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                 />
               </div>
               <div>
@@ -4804,13 +4869,13 @@ const App: React.FC = () => {
                 <input type="date" name="date" defaultValue={getLocalDateString(selectedExpense.date)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah (Opsional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wilayah {(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}</label>
                 <Dropdown 
                   name="area" 
                   value={formEditExpenseArea} 
                   onChange={(val) => setFormEditExpenseArea(String(val))} 
                   options={data.areas.filter(area => hasWriteAccessToArea(area)).map(area => ({ label: area, value: area }))} 
-                  placeholder="Pilih Wilayah (Opsional)"
+                  placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                 />
               </div>
               <div>
