@@ -9,6 +9,7 @@ import UnitCard from './components/UnitCard';
 import Dropdown from './components/Dropdown';
 import MultiSelectDropdown from './components/MultiSelectDropdown';
 import Logo from './components/Logo';
+import Calculator from './components/Calculator';
 
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -66,6 +67,10 @@ const App: React.FC = () => {
     dividendRecipients: [],
     settings: { cashPercentage: 20, savingPercentage: 30 }
   });
+
+  const isAccountingEditor = currentUser?.role === 'admin' || currentUser?.role === 'accountant';
+  const isTransactionEditor = currentUser?.role === 'admin' || currentUser?.role === 'user';
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'units' | 'tenants' | 'transactions' | 'reports'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
@@ -87,16 +92,12 @@ const App: React.FC = () => {
       setCurrentUser(user);
       setLoginError('');
       
-      // Determine initial mode based on role
+      // Everyone can choose mode
+      setShowPortal(true);
       if (user.role === 'user') {
         setAppMode('transaction');
-        setShowPortal(false);
       } else if (user.role === 'accountant') {
         setAppMode('accounting');
-        setShowPortal(false);
-      } else {
-        // Admin and Viewer can choose
-        setShowPortal(true);
       }
     } else {
       setLoginError('Nama atau PIN salah');
@@ -229,6 +230,7 @@ const App: React.FC = () => {
   const [isChangePinModalOpen, setIsChangePinModalOpen] = useState(false);
   const [isConfirmCloseBookModalOpen, setIsConfirmCloseBookModalOpen] = useState(false);
   const [isWalletTransactionModalOpen, setIsWalletTransactionModalOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [selectedWalletForTransaction, setSelectedWalletForTransaction] = useState<'zakat' | 'cash' | 'saving'>('cash');
   const [editingWalletTransaction, setEditingWalletTransaction] = useState<WalletTransaction | null>(null);
 
@@ -284,7 +286,7 @@ const App: React.FC = () => {
   // Balance Details Pagination & Filter
   const [balancePage, setBalancePage] = useState(1);
   const [balanceFilterYear, setBalanceFilterYear] = useState<number | 'all'>('all');
-  const balanceItemsPerPage = 6;
+  const [balanceItemsPerPage, setBalanceItemsPerPage] = useState(10);
 
   // Form Dropdown States
   const [formAddUnitArea, setFormAddUnitArea] = useState('');
@@ -1790,7 +1792,7 @@ const App: React.FC = () => {
               <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
               {!isSidebarCollapsed && <span>Saldo</span>}
             </button>
-            {currentUser?.role !== 'viewer' && (
+            {isAccountingEditor && (
               <button
                 onClick={() => setAccountingTab('settings')}
                 className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'settings' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
@@ -1818,7 +1820,7 @@ const App: React.FC = () => {
                 <span className="font-medium whitespace-nowrap">{theme === 'light' ? "Mode Gelap" : "Mode Terang"}</span>
               </div>
             </button>
-            {currentUser?.role !== 'accountant' && (
+            {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
               <button 
                 onClick={() => setShowPortal(true)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
@@ -1830,6 +1832,20 @@ const App: React.FC = () => {
                 </div>
               </button>
             )}
+            <button 
+              onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isCalculatorOpen ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'} w-full group`}
+              title={isSidebarCollapsed ? "Kalkulator" : ""}
+            >
+              <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+                <span className="font-medium whitespace-nowrap">Kalkulator</span>
+              </div>
+            </button>
             <button 
               onClick={() => setIsChangePinModalOpen(true)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
@@ -1887,7 +1903,7 @@ const App: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </button>
-              {currentUser?.role !== 'accountant' && (
+              {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
                 <button 
                   onClick={() => setShowPortal(true)}
                   className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -1995,7 +2011,7 @@ const App: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2 mb-6">
-                    {currentUser?.role !== 'viewer' && (
+                    {isAccountingEditor && (
                       <>
                         <button
                           onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }}
@@ -2064,7 +2080,7 @@ const App: React.FC = () => {
                         Periode Ini Sudah Ditutup
                       </div>
                     ) : (
-                      currentUser?.role !== 'viewer' && (data.payments.some(p => { const d = new Date(p.date); return d.getMonth() === reportMonth && d.getFullYear() === reportYear; }) || 
+                      isAccountingEditor && (data.payments.some(p => { const d = new Date(p.date); return d.getMonth() === reportMonth && d.getFullYear() === reportYear; }) || 
                        (data.otherIncomes || []).some(i => { const d = new Date(i.date); return d.getMonth() === reportMonth && d.getFullYear() === reportYear; }) ||
                        data.expenses.some(e => { const d = new Date(e.date); return d.getMonth() === reportMonth && d.getFullYear() === reportYear; })) && (
                         <button 
@@ -2103,7 +2119,7 @@ const App: React.FC = () => {
                             <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Wilayah - Unit/Kategori</th>
                             <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Keterangan</th>
                             <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-right">Jumlah</th>
-                            {currentUser?.role !== 'viewer' && <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
+                            {isAccountingEditor && <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2120,7 +2136,7 @@ const App: React.FC = () => {
                                 <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-medium">{unit ? `${unit.area} - ${unit.name}` : '-'}</td>
                                 <td className="px-4 py-3 text-slate-600 dark:text-slate-400">Sewa: {tenant ? tenant.name : '-'}</td>
                                 <td className="px-4 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium">Rp {p.amount.toLocaleString('id-ID')}</td>
-                                {currentUser?.role !== 'viewer' && <td className="px-4 py-3 text-center"></td>}
+                                {isAccountingEditor && <td className="px-4 py-3 text-center"></td>}
                               </tr>
                             );
                           })}
@@ -2135,7 +2151,7 @@ const App: React.FC = () => {
                               <td className="px-4 py-3 text-slate-800 dark:text-slate-200 font-medium">{i.category}</td>
                               <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{i.description}</td>
                               <td className="px-4 py-3 text-right text-indigo-600 dark:text-indigo-400 font-medium">Rp {i.amount.toLocaleString('id-ID')}</td>
-                              {currentUser?.role !== 'viewer' && (
+                              {isAccountingEditor && (
                                 <td className="px-4 py-3 text-center">
                                   <div className="flex items-center justify-center gap-2">
                                     <button onClick={() => handleEditOtherIncomeInit(i)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Edit">
@@ -2158,7 +2174,7 @@ const App: React.FC = () => {
                             return d.getMonth() === reportMonth && d.getFullYear() === reportYear;
                           }).length === 0) && (
                             <tr>
-                              <td colSpan={currentUser?.role !== 'viewer' ? 5 : 4} className="px-4 py-8 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data pemasukan</td>
+                              <td colSpan={isAccountingEditor ? 5 : 4} className="px-4 py-8 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data pemasukan</td>
                             </tr>
                           )}
                         </tbody>
@@ -2187,7 +2203,7 @@ const App: React.FC = () => {
                             <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Keterangan</th>
                             <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Bukti</th>
                             <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-right">Jumlah</th>
-                            {currentUser?.role !== 'viewer' && <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
+                            {isAccountingEditor && <th className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2219,7 +2235,7 @@ const App: React.FC = () => {
                                   ) : '-'}
                                 </td>
                                 <td className="px-4 py-3 text-right text-rose-600 dark:text-rose-400 font-medium">Rp {e.amount.toLocaleString('id-ID')}</td>
-                                {currentUser?.role !== 'viewer' && (
+                                {isAccountingEditor && (
                                   <td className="px-4 py-3 text-center">
                                     <div className="flex items-center justify-center gap-2">
                                       <button onClick={() => handleEditExpenseInit(e)} className="text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Edit">
@@ -2235,7 +2251,7 @@ const App: React.FC = () => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={currentUser?.role !== 'viewer' ? 7 : 6} className="px-4 py-8 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data pengeluaran</td>
+                              <td colSpan={isAccountingEditor ? 7 : 6} className="px-4 py-8 text-center text-slate-400 dark:text-slate-600 italic">Tidak ada data pengeluaran</td>
                             </tr>
                           )}
                         </tbody>
@@ -2308,7 +2324,7 @@ const App: React.FC = () => {
                                 >
                                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                 </button>
-                                {currentUser?.role !== 'viewer' && (
+                                {isAccountingEditor && (
                                   <button 
                                     onClick={() => handleDeleteBookClosing(closing.id)}
                                     className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
@@ -2361,7 +2377,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-start">
                     <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Zakat</h3>
-                    {currentUser?.role !== 'viewer' && (
+                    {isAccountingEditor && (
                       <button type="button" onClick={() => { setSelectedWalletForTransaction('zakat'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 p-2 rounded-xl transition-colors shadow-sm border border-indigo-100 dark:border-indigo-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Zakat">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         <span className="text-xs font-bold">Catat</span>
@@ -2380,7 +2396,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-start">
                     <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Kas</h3>
-                    {currentUser?.role !== 'viewer' && (
+                    {isAccountingEditor && (
                       <button type="button" onClick={() => { setSelectedWalletForTransaction('cash'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 p-2 rounded-xl transition-colors shadow-sm border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Kas">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         <span className="text-xs font-bold">Catat</span>
@@ -2399,7 +2415,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-start">
                     <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Saving</h3>
-                    {currentUser?.role !== 'viewer' && (
+                    {isAccountingEditor && (
                       <button type="button" onClick={() => { setSelectedWalletForTransaction('saving'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 p-2 rounded-xl transition-colors shadow-sm border border-blue-100 dark:border-blue-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Saving">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                         <span className="text-xs font-bold">Catat</span>
@@ -2416,17 +2432,37 @@ const App: React.FC = () => {
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white">Riwayat Transaksi</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Filter Tahun:</span>
-                    <Dropdown 
-                      value={balanceFilterYear}
-                      options={[{ label: 'Semua', value: 'all' }, ...balanceYearOptions.map(y => ({ label: y.toString(), value: y }))]}
-                      onChange={(val) => {
-                        setBalanceFilterYear(val === 'all' ? 'all' : Number(val));
-                        setBalancePage(1);
-                      }}
-                      className="w-32"
-                    />
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Tampilkan:</span>
+                      <Dropdown 
+                        value={balanceItemsPerPage}
+                        options={[
+                          { label: '5', value: 5 },
+                          { label: '10', value: 10 },
+                          { label: '25', value: 25 },
+                          { label: '50', value: 50 },
+                          { label: 'Semua', value: filteredUnifiedTxs.length || 1000 }
+                        ]}
+                        onChange={(val) => {
+                          setBalanceItemsPerPage(Number(val));
+                          setBalancePage(1);
+                        }}
+                        className="w-24"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Filter Tahun:</span>
+                      <Dropdown 
+                        value={balanceFilterYear}
+                        options={[{ label: 'Semua', value: 'all' }, ...balanceYearOptions.map(y => ({ label: y.toString(), value: y }))]}
+                        onChange={(val) => {
+                          setBalanceFilterYear(val === 'all' ? 'all' : Number(val));
+                          setBalancePage(1);
+                        }}
+                        className="w-32"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -2438,7 +2474,7 @@ const App: React.FC = () => {
                         <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Zakat</th>
                         <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Kas</th>
                         <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Saving</th>
-                        {currentUser?.role !== 'viewer' && <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
+                        {isAccountingEditor && <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2467,7 +2503,7 @@ const App: React.FC = () => {
                             <td className={`px-6 py-4 text-right font-medium ${tx.saving > 0 ? 'text-blue-600 dark:text-blue-400' : tx.saving < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-600'}`}>
                               {tx.saving > 0 ? '+' : ''}{tx.saving === 0 ? '-' : `Rp ${tx.saving.toLocaleString('id-ID')}`}
                             </td>
-                            {currentUser?.role !== 'viewer' && (
+                            {isAccountingEditor && (
                               <td className="px-6 py-4 text-center">
                                 {tx.isManual ? (
                                   <div className="flex items-center justify-center gap-2">
@@ -2494,7 +2530,7 @@ const App: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={currentUser?.role !== 'viewer' ? 6 : 5} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat transaksi.</td>
+                          <td colSpan={isAccountingEditor ? 6 : 5} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat transaksi.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2523,13 +2559,13 @@ const App: React.FC = () => {
                 )}
               </div>
             </div>
-          ) : currentUser?.role === 'viewer' ? (
+          ) : !isAccountingEditor ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               </div>
               <h3 className="text-lg font-bold text-slate-800 dark:text-white">Akses Terbatas</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">Role Viewer tidak memiliki akses ke pengaturan pembukuan.</p>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">Anda tidak memiliki akses ke pengaturan pembukuan.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -2646,7 +2682,14 @@ const App: React.FC = () => {
             <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span className="text-[10px] font-bold landscape:text-xs">Saldo</span>
           </button>
-          {currentUser?.role !== 'viewer' && (
+          <button 
+            onClick={() => setIsCalculatorOpen(!isCalculatorOpen)} 
+            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${isCalculatorOpen ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+          >
+            <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            <span className="text-[10px] font-bold landscape:text-xs">Kalkulator</span>
+          </button>
+          {isAccountingEditor && (
             <button 
               onClick={() => setAccountingTab('settings')} 
               className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'settings' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
@@ -3423,6 +3466,14 @@ const App: React.FC = () => {
         </div>
       )}
 
+        {/* Calculator */}
+        {isCalculatorOpen && (
+          <Calculator 
+            isOpen={isCalculatorOpen} 
+            onClose={() => setIsCalculatorOpen(false)} 
+          />
+        )}
+
       </div>
     </div>
   );
@@ -3492,7 +3543,7 @@ const App: React.FC = () => {
               <span className="font-medium whitespace-nowrap">{theme === 'light' ? "Mode Gelap" : "Mode Terang"}</span>
             </div>
           </button>
-          {currentUser?.role !== 'user' && (
+          {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
             <button 
               onClick={() => setShowPortal(true)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
@@ -3590,7 +3641,7 @@ const App: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </button>
-              {currentUser?.role !== 'user' && (
+              {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
                 <button 
                   onClick={() => setShowPortal(true)}
                   className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -3622,7 +3673,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-1 sm:gap-2 items-center overflow-x-auto no-scrollbar pb-1 sm:pb-0 w-full sm:w-auto">
-             {currentUser?.role !== 'viewer' && (
+             {isTransactionEditor && (
                 <>
                   <button onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }} className="bg-indigo-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Catat Pemasukan Lain">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -3768,7 +3819,7 @@ const App: React.FC = () => {
                                     Lunas
                                   </span>
                                 ) : (
-                                  currentUser?.role !== 'viewer' && unit && hasWriteAccessToArea(unit.area) && (
+                                  isTransactionEditor && unit && hasWriteAccessToArea(unit.area) && (
                                     <button 
                                       onClick={() => handleUnitAction(unit)} 
                                       className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-colors shadow-sm"
@@ -3872,7 +3923,7 @@ const App: React.FC = () => {
                         </div>
                       </th>
                       <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tunggakan</th>
-                      {currentUser?.role !== 'viewer' && (
+                      {isTransactionEditor && (
                         <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase text-right">Aksi</th>
                       )}
                     </tr>
@@ -3892,7 +3943,7 @@ const App: React.FC = () => {
                             return arrears > 0 ? <span className="text-rose-600 dark:text-rose-400 font-bold">Rp {arrears.toLocaleString('id-ID')}</span> : <span className="text-emerald-600 dark:text-emerald-400 font-bold">Lunas</span>;
                           })()}
                         </td>
-                        {currentUser?.role !== 'viewer' && (
+                        {isTransactionEditor && (
                           <td className="px-4 py-3 whitespace-nowrap text-right" onClick={e => e.stopPropagation()}>
                              <div className="flex justify-end gap-2">
                               {(() => {
@@ -3960,7 +4011,7 @@ const App: React.FC = () => {
                           <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Periode</th>
                           <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tanggal</th>
                           <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Jumlah</th>
-                          {currentUser?.role !== 'viewer' && (
+                          {isTransactionEditor && (
                             <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase text-right">Aksi</th>
                           )}
                         </tr>
@@ -3986,7 +4037,7 @@ const App: React.FC = () => {
                             <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{p.periodCovered}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
                             <td className="px-4 py-3 whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400">Rp {p.amount.toLocaleString('id-ID')}</td>
-                            {currentUser?.role !== 'viewer' && (
+                            {isTransactionEditor && (
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <div className="flex justify-end gap-2">
                                   {(!unit || hasWriteAccessToArea(unit.area)) && (
@@ -4012,7 +4063,7 @@ const App: React.FC = () => {
                           }
                           return true;
                         }).length === 0 && (
-                          <tr><td colSpan={currentUser?.role === 'viewer' ? 6 : 7} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500 italic">Tidak ada data pemasukan untuk periode ini</td></tr>
+                          <tr><td colSpan={!isTransactionEditor ? 6 : 7} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500 italic">Tidak ada data pemasukan untuk periode ini</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -4033,7 +4084,7 @@ const App: React.FC = () => {
                           <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Kategori</th>
                           <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Tanggal</th>
                           <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Jumlah</th>
-                          {currentUser?.role !== 'viewer' && (
+                          {isTransactionEditor && (
                             <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase text-right">Aksi</th>
                           )}
                         </tr>
@@ -4059,7 +4110,7 @@ const App: React.FC = () => {
                             <td className="px-4 py-3 whitespace-nowrap"><span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-600 dark:text-slate-400">{ex.category}</span></td>
                             <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatDate(ex.date)}</td>
                             <td className="px-4 py-3 whitespace-nowrap font-bold text-rose-600 dark:text-rose-400">Rp {ex.amount.toLocaleString('id-ID')}</td>
-                            {currentUser?.role !== 'viewer' && (
+                            {isTransactionEditor && (
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <div className="flex justify-end gap-2">
                                   {ex.proofUrl && (
@@ -4071,7 +4122,7 @@ const App: React.FC = () => {
                                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                     </button>
                                   )}
-                                  {currentUser?.role !== 'viewer' && (
+                                  {isTransactionEditor && (
                                     <>
                                       {(!ex.area || hasWriteAccessToArea(ex.area)) && (
                                         <>
@@ -4099,7 +4150,7 @@ const App: React.FC = () => {
                           }
                           return true;
                         }).length === 0 && (
-                          <tr><td colSpan={currentUser?.role === 'viewer' ? 6 : 7} className="px-6 py-8 text-center text-slate-400 italic">Tidak ada data pengeluaran untuk periode ini</td></tr>
+                          <tr><td colSpan={!isTransactionEditor ? 6 : 7} className="px-6 py-8 text-center text-slate-400 italic">Tidak ada data pengeluaran untuk periode ini</td></tr>
                         )}
                       </tbody>
                     </table>
