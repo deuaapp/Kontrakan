@@ -2376,7 +2376,7 @@ const App: React.FC = () => {
                     <svg className="w-24 h-24 text-indigo-600 dark:text-indigo-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Zakat</h3>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Saldo Zakat</h3>
                     {isAccountingEditor && (
                       <button type="button" onClick={() => { setSelectedWalletForTransaction('zakat'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 p-2 rounded-xl transition-colors shadow-sm border border-indigo-100 dark:border-indigo-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Zakat">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -2395,7 +2395,7 @@ const App: React.FC = () => {
                     <svg className="w-24 h-24 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                   </div>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Kas</h3>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Saldo Kas</h3>
                     {isAccountingEditor && (
                       <button type="button" onClick={() => { setSelectedWalletForTransaction('cash'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 p-2 rounded-xl transition-colors shadow-sm border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Kas">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -2414,7 +2414,7 @@ const App: React.FC = () => {
                     <svg className="w-24 h-24 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Total Saldo Saving</h3>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-2">Saldo Saving</h3>
                     {isAccountingEditor && (
                       <button type="button" onClick={() => { setSelectedWalletForTransaction('saving'); setIsWalletTransactionModalOpen(true); }} className="relative z-10 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 p-2 rounded-xl transition-colors shadow-sm border border-blue-100 dark:border-blue-900/30 flex items-center gap-1 cursor-pointer" title="Catat Transaksi Saving">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -3620,7 +3620,7 @@ const App: React.FC = () => {
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-3 md:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center sticky top-0 z-30 shadow-sm gap-3 sm:gap-2 transition-colors duration-300">
           <div className="flex w-full sm:w-auto justify-between items-center">
             <div className="md:hidden flex items-center gap-1 shrink-0 min-w-0">
-              <span className="font-bold text-slate-800 dark:text-white text-base sm:text-lg truncate">KontrakanKu</span>
+              <span className="font-bold text-slate-800 dark:text-white text-base sm:text-lg truncate">Transaksi</span>
               <button 
                 onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                 className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
