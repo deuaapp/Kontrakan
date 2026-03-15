@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { loadData, saveData, uploadFileToGAS } from './services/storageService';
-import { AppData, RentalUnit, Tenant, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction } from './types';
+import { AppData, RentalUnit, Tenant, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction, AppLog } from './types';
 import StatCard from './components/StatCard';
 import UnitCard from './components/UnitCard';
 import Dropdown from './components/Dropdown';
@@ -71,7 +71,7 @@ const App: React.FC = () => {
   const isAccountingEditor = currentUser?.role === 'admin' || currentUser?.role === 'accountant';
   const isTransactionEditor = currentUser?.role === 'admin' || currentUser?.role === 'user';
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'units' | 'tenants' | 'transactions' | 'reports'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'units' | 'tenants' | 'transactions' | 'reports' | 'logs'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   // Accounting Settings State
@@ -84,6 +84,23 @@ const App: React.FC = () => {
 
   // ... (rest of the state)
 
+  const logAction = (action: AppLog['action'], entity: string, details: string) => {
+    const newLog: AppLog = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      timestamp: new Date().toISOString(),
+      user: currentUser?.username || 'System',
+      action,
+      entity,
+      details
+    };
+    
+    setData(prev => {
+      const newData = { ...prev, logs: [newLog, ...(prev.logs || [])].slice(0, 1000) };
+      saveData(newData);
+      return newData;
+    });
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const user = data.users.find(u => u.username.toLowerCase() === loginName.toLowerCase() && u.pin === loginPin);
@@ -91,6 +108,7 @@ const App: React.FC = () => {
       setIsLoggedIn(true);
       setCurrentUser(user);
       setLoginError('');
+      logAction('LOGIN', 'User', `Login berhasil sebagai ${user.username}`);
       
       // Everyone can choose mode
       setShowPortal(true);
@@ -135,6 +153,7 @@ const App: React.FC = () => {
         setEditingWalletTransaction(null);
         setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil diperbarui');
+        logAction('UPDATE', 'Wallet', `Update transaksi ${updatedTx.wallet}: ${updatedTx.description}`);
       } else {
         const newTx: WalletTransaction = {
           id: Date.now().toString(),
@@ -148,6 +167,7 @@ const App: React.FC = () => {
         const newData = { ...data, walletTransactions: [...(data.walletTransactions || []), newTx] };
         setData(newData); saveData(newData); setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil dicatat');
+        logAction('CREATE', 'Wallet', `Tambah transaksi ${newTx.wallet}: ${newTx.description}`);
       }
     });
   };
@@ -158,6 +178,7 @@ const App: React.FC = () => {
         const newData = { ...data, walletTransactions: data.walletTransactions?.filter(t => t.id !== id) || [] };
         setData(newData); saveData(newData);
         showToast('Transaksi dompet berhasil dihapus');
+        logAction('DELETE', 'Wallet', `Hapus transaksi dompet`);
       });
     });
   };
@@ -230,6 +251,7 @@ const App: React.FC = () => {
   const [isChangePinModalOpen, setIsChangePinModalOpen] = useState(false);
   const [isConfirmCloseBookModalOpen, setIsConfirmCloseBookModalOpen] = useState(false);
   const [isWalletTransactionModalOpen, setIsWalletTransactionModalOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [selectedWalletForTransaction, setSelectedWalletForTransaction] = useState<'zakat' | 'cash' | 'saving'>('cash');
   const [editingWalletTransaction, setEditingWalletTransaction] = useState<WalletTransaction | null>(null);
@@ -363,6 +385,20 @@ const App: React.FC = () => {
     
     return { month: new Date().getMonth(), year: new Date().getFullYear() };
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isUserMenuOpen) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    if (isUserMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
   // Load data on mount
   useEffect(() => {
@@ -514,6 +550,7 @@ const App: React.FC = () => {
     saveData(updatedData);
     setIsConfirmCloseBookModalOpen(false);
     showToast('Tutup buku berhasil! Transaksi periode ini telah di-reset');
+    logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear}`);
   };
 
   const handleDeleteBookClosing = (id: string) => {
@@ -549,6 +586,7 @@ const App: React.FC = () => {
         setData(newData);
         saveData(newData);
         showToast('Riwayat tutup buku berhasil dihapus dan transaksi dikembalikan');
+        logAction('OTHER', 'System', `Hapus riwayat tutup buku periode ${monthNames[closingToDelete.periodMonth]} ${closingToDelete.periodYear}`);
       });
     });
   };
@@ -584,6 +622,7 @@ const App: React.FC = () => {
         setData(updatedData);
         saveData(updatedData);
         showToast('Penerima dividen berhasil ditambahkan');
+        logAction('CREATE', 'Recipient', `Tambah penerima dividen ${newRecipientName} (${newRecipientPercentage}%)`);
       });
     }
   };
@@ -602,6 +641,7 @@ const App: React.FC = () => {
           setData(updatedData);
           saveData(updatedData);
           showToast('Penerima dividen berhasil dihapus');
+          logAction('DELETE', 'Recipient', `Hapus penerima dividen`);
       });
     });
   };
@@ -1009,6 +1049,7 @@ const App: React.FC = () => {
                 if (url) {
                   setUploadedFileBase64(url);
                   showToast('File berhasil diunggah');
+                  logAction('UPLOAD', 'File', `Upload file: ${file.name}`);
                 } else {
                   showToast('Gagal mengunggah file ke Drive', 'error');
                 }
@@ -1091,6 +1132,7 @@ const App: React.FC = () => {
       const newData = { ...data, units: data.units.map(u => u.id === selectedUnit.id ? updatedUnit : u) };
       setData(newData); saveData(newData); setIsEditUnitModalOpen(false);
       showToast('Data unit berhasil diperbarui');
+      logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name}`);
     });
   };
 
@@ -1114,6 +1156,7 @@ const App: React.FC = () => {
       const newData = { ...data, units: [...data.units, newUnit] };
       setData(newData); saveData(newData); setIsAddUnitModalOpen(false);
       showToast('Unit baru berhasil ditambahkan');
+      logAction('CREATE', 'Unit', `Tambah unit ${newUnit.name}`);
     });
   };
 
@@ -1144,6 +1187,7 @@ const App: React.FC = () => {
       };
       setData(newData); saveData(newData); setIsAddTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Penyewa berhasil ditambahkan');
+      logAction('CREATE', 'Tenant', `Tambah penyewa ${newTenant.name} di unit ${selectedUnit.name}`);
     });
   };
 
@@ -1174,6 +1218,7 @@ const App: React.FC = () => {
       const newData = { ...data, tenants: data.tenants.map(t => t.id === selectedTenant.id ? updatedTenant : t) };
       setData(newData); saveData(newData); setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
+      logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name}`);
     });
   };
 
@@ -1195,6 +1240,7 @@ const App: React.FC = () => {
         };
         setData(newData); saveData(newData);
         showToast('Penyewa berhasil dikeluarkan');
+        logAction('DELETE', 'Tenant', `Hapus penyewa ${tenant.name}`);
       });
     });
   };
@@ -1219,6 +1265,7 @@ const App: React.FC = () => {
       const newData = { ...data, areas: [...data.areas, newAreaName] };
       setData(newData); saveData(newData); setIsAddAreaModalOpen(false);
       showToast('Wilayah berhasil ditambahkan');
+      logAction('CREATE', 'Area', `Tambah wilayah ${newAreaName}`);
     });
   };
 
@@ -1245,6 +1292,7 @@ const App: React.FC = () => {
       };
       setData(newData); saveData(newData); setIsEditAreaModalOpen(false);
       showToast('Nama wilayah berhasil diperbarui');
+      logAction('UPDATE', 'Area', `Update wilayah ${selectedArea} menjadi ${newName}`);
     });
   };
 
@@ -1263,6 +1311,7 @@ const App: React.FC = () => {
         };
         setData(newData); saveData(newData);
         showToast('Wilayah berhasil dihapus');
+        logAction('DELETE', 'Area', `Hapus wilayah ${area}`);
       });
     });
   };
@@ -1301,6 +1350,7 @@ const App: React.FC = () => {
       const newData = { ...data, payments: [...data.payments, newPayment] };
       setData(newData); saveData(newData); setIsPaymentModalOpen(false);
       showToast('Pembayaran berhasil ditambahkan');
+      logAction('CREATE', 'Payment', `Tambah pembayaran Rp ${newPayment.amount.toLocaleString('id-ID')} untuk ${newPayment.periodCovered}`);
     });
   };
 
@@ -1338,6 +1388,7 @@ const App: React.FC = () => {
       const newData = { ...data, payments: data.payments.map(p => p.id === selectedPayment.id ? updatedPayment : p) };
       setData(newData); saveData(newData); setIsEditPaymentModalOpen(false); setSelectedPayment(null);
       showToast('Data pembayaran berhasil diperbarui');
+      logAction('UPDATE', 'Payment', `Update pembayaran Rp ${updatedPayment.amount.toLocaleString('id-ID')}`);
     });
   };
 
@@ -1355,6 +1406,7 @@ const App: React.FC = () => {
         const newData = { ...data, payments: data.payments.filter(p => p.id !== paymentId) };
         setData(newData); saveData(newData);
         showToast('Pembayaran berhasil dihapus');
+        logAction('DELETE', 'Payment', `Hapus pembayaran`);
       });
     });
   };
@@ -1394,6 +1446,7 @@ const App: React.FC = () => {
       const newData = { ...data, expenses: [...data.expenses, newExpense] };
       setData(newData); saveData(newData); setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
       showToast('Pengeluaran berhasil ditambahkan');
+      logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.description}: Rp ${newExpense.amount.toLocaleString('id-ID')}`);
     });
   };
 
@@ -1439,6 +1492,7 @@ const App: React.FC = () => {
       const newData = { ...data, expenses: data.expenses.map(ex => ex.id === selectedExpense.id ? updatedExpense : ex) };
       setData(newData); saveData(newData); setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
+      logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.description}`);
     });
   };
 
@@ -1455,6 +1509,7 @@ const App: React.FC = () => {
         const newData = { ...data, expenses: data.expenses.filter(ex => ex.id !== expenseId) };
         setData(newData); saveData(newData);
         showToast('Pengeluaran berhasil dihapus');
+        logAction('DELETE', 'Expense', `Hapus pengeluaran`);
       });
     });
   };
@@ -1493,6 +1548,7 @@ const App: React.FC = () => {
       };
       setData(newData); saveData(newData); setIsEditOtherIncomeModalOpen(false); setSelectedOtherIncome(null);
       showToast('Data pemasukan lain berhasil diperbarui');
+      logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.description}`);
     });
   };
 
@@ -1505,6 +1561,7 @@ const App: React.FC = () => {
         };
         setData(newData); saveData(newData);
         showToast('Pemasukan lain berhasil dihapus');
+        logAction('DELETE', 'OtherIncome', `Hapus pemasukan lain`);
       });
     });
   };
@@ -1518,6 +1575,7 @@ const App: React.FC = () => {
         const newData = { ...data, expenseCategories: [...data.expenseCategories, newCategory] };
         setData(newData); saveData(newData); setIsAddCategoryModalOpen(false);
         showToast('Kategori berhasil ditambahkan');
+        logAction('CREATE', 'Category', `Tambah kategori pengeluaran ${newCategory}`);
       }
     });
   };
@@ -1539,6 +1597,7 @@ const App: React.FC = () => {
         const newData = { ...data, users: [...data.users, newUser] };
         setData(newData); saveData(newData); setIsAddUserModalOpen(false);
         showToast('User berhasil ditambahkan');
+        logAction('CREATE', 'User', `Tambah user ${username} dengan role ${role}`);
       }
     });
   };
@@ -1572,6 +1631,7 @@ const App: React.FC = () => {
       setCurrentUser({ ...currentUser, pin: newPin });
       setIsChangePinModalOpen(false);
       showToast('PIN berhasil diubah');
+      logAction('UPDATE', 'User', `Ubah PIN untuk user ${currentUser.username}`);
     });
   };
 
@@ -1585,6 +1645,7 @@ const App: React.FC = () => {
         setData(newData); 
         saveData(newData);
         showToast(`PIN ${username} berhasil direset ke 1234`);
+        logAction('UPDATE', 'User', `Reset PIN untuk user ${username}`);
       });
     });
   };
@@ -1803,77 +1864,97 @@ const App: React.FC = () => {
               </button>
             )}
           </nav>
-          <div className="p-4 border-t border-slate-50 dark:border-slate-800 space-y-1">
-            <button 
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
-              title={isSidebarCollapsed ? (theme === 'light' ? "Mode Gelap" : "Mode Terang") : ""}
-            >
-              <span className="shrink-0 transition-transform duration-300 group-hover:rotate-12">
-                {theme === 'light' ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                )}
-              </span>
-              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-                <span className="font-medium whitespace-nowrap">{theme === 'light' ? "Mode Gelap" : "Mode Terang"}</span>
-              </div>
-            </button>
-            {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
-              <button 
-                onClick={() => setShowPortal(true)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
-                title={isSidebarCollapsed ? "Ganti Aplikasi" : ""}
-              >
-                <span className="shrink-0 transition-transform duration-300 group-hover:scale-110"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></span>
-                <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-                  <span className="font-medium whitespace-nowrap">Ganti Aplikasi</span>
+          <div className="p-4 border-t border-slate-50 dark:border-slate-800 relative">
+            {/* User Menu Popover */}
+            {isUserMenuOpen && (
+              <div className={`absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200 ${isSidebarCollapsed ? 'w-48 left-16 right-auto' : ''}`}>
+                <div className="p-2 space-y-1">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setTheme(theme === 'light' ? 'dark' : 'light'); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                      {theme === 'light' ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                      )}
+                    </div>
+                    {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+                  </button>
+                  
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                      </div>
+                      Ganti Aplikasi
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsCalculatorOpen(!isCalculatorOpen); setIsUserMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${isCalculatorOpen ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCalculatorOpen ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    Kalkulator
+                  </button>
+
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsChangePinModalOpen(true); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    </div>
+                    Ganti PIN
+                  </button>
+
+                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
+
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsLoggedIn(false);
+                      setCurrentUser(null);
+                      localStorage.removeItem('amg_isLoggedIn');
+                      localStorage.removeItem('amg_currentUser');
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    </div>
+                    Keluar
+                  </button>
                 </div>
-              </button>
+              </div>
             )}
+
             <button 
-              onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isCalculatorOpen ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'} w-full group`}
-              title={isSidebarCollapsed ? "Kalkulator" : ""}
+              onClick={(e) => { e.stopPropagation(); setIsUserMenuOpen(!isUserMenuOpen); }}
+              className={`w-full flex items-center gap-3 p-2 rounded-2xl transition-all duration-300 group ${isUserMenuOpen ? 'bg-slate-50 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
             >
-              <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                {currentUser?.username.charAt(0).toUpperCase()}
+              </div>
+              <div className={`flex-1 text-left transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{currentUser?.role}</p>
+              </div>
+              {!isSidebarCollapsed && (
+                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                 </svg>
-              </span>
-              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-                <span className="font-medium whitespace-nowrap">Kalkulator</span>
-              </div>
-            </button>
-            <button 
-              onClick={() => setIsChangePinModalOpen(true)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 w-full group`}
-              title={isSidebarCollapsed ? "Ganti PIN" : ""}
-            >
-              <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </span>
-              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-                <span className="font-medium whitespace-nowrap">Ganti PIN</span>
-              </div>
-            </button>
-            <button 
-              onClick={() => {
-                setIsLoggedIn(false);
-                setCurrentUser(null);
-                localStorage.removeItem('amg_isLoggedIn');
-                localStorage.removeItem('amg_currentUser');
-              }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 w-full group`}
-              title={isSidebarCollapsed ? "Keluar" : ""}
-            >
-              <span className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
-              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-                <span className="font-medium whitespace-nowrap">Keluar</span>
-              </div>
+              )}
             </button>
           </div>
         </aside>
@@ -1882,49 +1963,6 @@ const App: React.FC = () => {
           {/* Mobile Header */}
           <header className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex justify-between items-center sticky top-0 z-30 shadow-sm transition-colors duration-300">
             <span className="font-bold text-slate-800 dark:text-white text-lg">Pembukuan</span>
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                title={theme === 'light' ? "Mode Gelap" : "Mode Terang"}
-              >
-                {theme === 'light' ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                )}
-              </button>
-              <button 
-                onClick={() => setIsChangePinModalOpen(true)}
-                className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                title="Ganti PIN"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </button>
-              {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
-                <button 
-                  onClick={() => setShowPortal(true)}
-                  className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                  title="Ganti Aplikasi"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                </button>
-              )}
-              <button 
-                onClick={() => {
-                  setIsLoggedIn(false);
-                  setCurrentUser(null);
-                  localStorage.removeItem('amg_isLoggedIn');
-                  localStorage.removeItem('amg_currentUser');
-                }}
-                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors"
-                title="Keluar"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              </button>
-            </div>
           </header>
 
           <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
@@ -2018,14 +2056,14 @@ const App: React.FC = () => {
                           className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                          Tambah Pemasukan Lain
+                          Pemasukan Lain
                         </button>
                         <button
                           onClick={() => { setIsAddExpenseModalOpen(true); setUploadedFileBase64(null); }}
                           className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                          Tambah Pengeluaran
+                          Pengeluaran
                         </button>
                       </>
                     )}
@@ -2667,37 +2705,111 @@ const App: React.FC = () => {
         </main>
 
         {/* Bottom Navigation - Mobile */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 landscape:py-1 flex justify-around items-center z-40 pb-4 landscape:pb-1 transition-colors duration-300">
-          <button 
-            onClick={() => setAccountingTab('closing')} 
-            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'closing' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
-          >
-            <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            <span className="text-[10px] font-bold landscape:text-xs">Tutup Buku</span>
-          </button>
-          <button 
-            onClick={() => setAccountingTab('balance')} 
-            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'balance' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
-          >
-            <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span className="text-[10px] font-bold landscape:text-xs">Saldo</span>
-          </button>
-          <button 
-            onClick={() => setIsCalculatorOpen(!isCalculatorOpen)} 
-            className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${isCalculatorOpen ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
-          >
-            <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-            <span className="text-[10px] font-bold landscape:text-xs">Kalkulator</span>
-          </button>
-          {isAccountingEditor && (
-            <button 
-              onClick={() => setAccountingTab('settings')} 
-              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${accountingTab === 'settings' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
-            >
-              <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <span className="text-[10px] font-bold landscape:text-xs">Pengaturan</span>
-            </button>
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 landscape:py-1 flex justify-between items-center z-40 pb-4 landscape:pb-1 transition-colors duration-300">
+          {/* Mobile User Menu Popover */}
+          {isUserMenuOpen && (
+            <div className="absolute bottom-full right-4 mb-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="p-2 space-y-1">
+                <div className="px-3 py-2 mb-1 border-b border-slate-50 dark:border-slate-800">
+                  <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">{currentUser?.role}</p>
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setTheme(theme === 'light' ? 'dark' : 'light'); setIsUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                    {theme === 'light' ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                    )}
+                  </div>
+                  {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+                </button>
+                
+                {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </div>
+                    Ganti Aplikasi
+                  </button>
+                )}
+
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsCalculatorOpen(!isCalculatorOpen); setIsUserMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${isCalculatorOpen ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCalculatorOpen ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  Kalkulator
+                </button>
+
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsChangePinModalOpen(true); setIsUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  </div>
+                  Ganti PIN
+                </button>
+
+                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
+
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    localStorage.removeItem('amg_isLoggedIn');
+                    localStorage.removeItem('amg_currentUser');
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  </div>
+                  Keluar
+                </button>
+              </div>
+            </div>
           )}
+          {[
+            { id: 'closing', label: 'Tutup Buku', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+            { id: 'balance', label: 'Saldo', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+            ...(isAccountingEditor ? [{ id: 'settings', label: 'Pengaturan', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> }] : []),
+            { id: 'more', label: 'Lainnya', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg> }
+          ].map(tab => (
+            <button 
+              key={tab.id} 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (tab.id === 'more') {
+                  setIsUserMenuOpen(!isUserMenuOpen);
+                } else {
+                  setAccountingTab(tab.id as any);
+                  setIsUserMenuOpen(false);
+                }
+              }} 
+              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${
+                (tab.id === 'more' && isUserMenuOpen) || (accountingTab === tab.id && tab.id !== 'more') 
+                  ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+            >
+              {tab.icon}
+              <span className="text-[10px] font-bold landscape:text-xs">{tab.label}</span>
+            </button>
+          ))}
         </nav>
 
         {/* Alert Modal */}
@@ -3525,64 +3637,88 @@ const App: React.FC = () => {
           <NavItem id="tenants" label="Penyewa" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>} />
           <NavItem id="transactions" label="Transaksi" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
           <NavItem id="reports" label="Laporan" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
+          <NavItem id="logs" label="Riwayat" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
         </nav>
-        <div className="p-4 border-t border-slate-50 dark:border-slate-800 space-y-1">
-          <button 
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
-            title={isSidebarCollapsed ? (theme === 'light' ? "Mode Gelap" : "Mode Terang") : ""}
-          >
-            <span className="shrink-0 transition-transform duration-300 group-hover:rotate-12">
-              {theme === 'light' ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-              )}
-            </span>
-            <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-              <span className="font-medium whitespace-nowrap">{theme === 'light' ? "Mode Gelap" : "Mode Terang"}</span>
-            </div>
-          </button>
-          {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
-            <button 
-              onClick={() => setShowPortal(true)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
-              title={isSidebarCollapsed ? "Ganti Aplikasi" : ""}
-            >
-              <span className="shrink-0 transition-transform duration-300 group-hover:scale-110"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></span>
-              <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-                <span className="font-medium whitespace-nowrap">Ganti Aplikasi</span>
+        <div className="p-4 border-t border-slate-50 dark:border-slate-800 relative">
+          {/* User Menu Popover */}
+          {isUserMenuOpen && (
+            <div className={`absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200`}>
+              <div className="p-2 space-y-1">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setTheme(theme === 'light' ? 'dark' : 'light'); setIsUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                    {theme === 'light' ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                    )}
+                  </div>
+                  {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+                </button>
+                
+                {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </div>
+                    Ganti Aplikasi
+                  </button>
+                )}
+
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsChangePinModalOpen(true); setIsUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  </div>
+                  Ganti PIN
+                </button>
+
+                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
+
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    localStorage.removeItem('amg_isLoggedIn');
+                    localStorage.removeItem('amg_currentUser');
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  </div>
+                  Keluar
+                </button>
               </div>
-            </button>
+            </div>
           )}
+
+          {/* User Profile Button */}
           <button 
-            onClick={() => setIsChangePinModalOpen(true)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 w-full group`}
-            title={isSidebarCollapsed ? "Ganti PIN" : ""}
+            onClick={(e) => { e.stopPropagation(); setIsUserMenuOpen(!isUserMenuOpen); }}
+            className={`flex items-center gap-3 p-2 rounded-2xl transition-all duration-300 w-full group ${isUserMenuOpen ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
           >
-            <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform">
+              {currentUser?.username.charAt(0).toUpperCase()}
+            </div>
+            <div className={`flex-1 text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+              <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
+              <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{currentUser?.role}</p>
+            </div>
+            {!isSidebarCollapsed && (
+              <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
-            </span>
-            <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-              <span className="font-medium whitespace-nowrap">Ganti PIN</span>
-            </div>
-          </button>
-          <button 
-            onClick={() => {
-              setIsLoggedIn(false);
-              setCurrentUser(null);
-              localStorage.removeItem('amg_isLoggedIn');
-              localStorage.removeItem('amg_currentUser');
-            }}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 w-full group`}
-            title={isSidebarCollapsed ? "Keluar" : ""}
-          >
-            <span className="shrink-0 transition-transform duration-300 group-hover:translate-x-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></span>
-            <div className={`overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-              <span className="font-medium whitespace-nowrap">Keluar</span>
-            </div>
+            )}
           </button>
         </div>
       </aside>
@@ -3620,48 +3756,7 @@ const App: React.FC = () => {
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-3 md:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center sticky top-0 z-30 shadow-sm gap-3 sm:gap-2 transition-colors duration-300">
           <div className="flex w-full sm:w-auto justify-between items-center">
             <div className="md:hidden flex items-center gap-1 shrink-0 min-w-0">
-              <span className="font-bold text-slate-800 dark:text-white text-base sm:text-lg truncate">Transaksi</span>
-              <button 
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                title={theme === 'light' ? "Mode Gelap" : "Mode Terang"}
-              >
-                {theme === 'light' ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                )}
-              </button>
-              <button 
-                onClick={() => setIsChangePinModalOpen(true)}
-                className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                title="Ganti PIN"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </button>
-              {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
-                <button 
-                  onClick={() => setShowPortal(true)}
-                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                  title="Ganti Aplikasi"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                </button>
-              )}
-              <button 
-                onClick={() => {
-                  setIsLoggedIn(false);
-                  setCurrentUser(null);
-                  localStorage.removeItem('amg_isLoggedIn');
-                  localStorage.removeItem('amg_currentUser');
-                }}
-                className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-full transition-colors"
-                title="Keluar"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              </button>
+              <span className="font-bold text-slate-800 dark:text-white text-base sm:text-lg truncate">Kontrakan AMG</span>
             </div>
             <div className="hidden md:block">
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">
@@ -4160,6 +4255,77 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {activeTab === 'logs' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Riwayat Aktivitas</h3>
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    onClick={() => openConfirmModal('Bersihkan semua riwayat aktivitas?', () => {
+                      const newData = { ...data, logs: [] };
+                      setData(newData); saveData(newData);
+                      showToast('Riwayat aktivitas berhasil dibersihkan');
+                    })}
+                    className="px-4 py-2 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl font-bold hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-all text-sm flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    Bersihkan Riwayat
+                  </button>
+                )}
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 text-sm uppercase tracking-wider">Waktu</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 text-sm uppercase tracking-wider">User</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 text-sm uppercase tracking-wider">Aksi</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 text-sm uppercase tracking-wider">Entitas</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 text-sm uppercase tracking-wider">Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {(data.logs || []).slice().reverse().map(log => (
+                        <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleString('id-ID', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-slate-700 dark:text-slate-200">{log.user}</td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                              log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                              log.action === 'UPDATE' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                              log.action === 'DELETE' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
+                              log.action === 'UPLOAD' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                              'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                            }`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{log.entity}</td>
+                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{log.details}</td>
+                        </tr>
+                      ))}
+                      {(!data.logs || data.logs.length === 0) && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Belum ada riwayat aktivitas</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'reports' && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="bg-white dark:bg-slate-900 p-4 md:p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-4 transition-colors duration-300">
@@ -4318,17 +4484,95 @@ const App: React.FC = () => {
 
         {/* Bottom Navigation - Mobile */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 landscape:py-1 flex justify-between items-center z-40 pb-4 landscape:pb-1 transition-colors duration-300">
+          {/* Mobile User Menu Popover */}
+          {isUserMenuOpen && (
+            <div className="absolute bottom-full right-4 mb-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="p-2 space-y-1">
+                <div className="px-3 py-2 mb-1 border-b border-slate-50 dark:border-slate-800">
+                  <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">{currentUser?.role}</p>
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setTheme(theme === 'light' ? 'dark' : 'light'); setIsUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                    {theme === 'light' ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+                    )}
+                  </div>
+                  {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+                </button>
+                
+                {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </div>
+                    Ganti Aplikasi
+                  </button>
+                )}
+
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setIsChangePinModalOpen(true); setIsUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  </div>
+                  Ganti PIN
+                </button>
+
+                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
+
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    localStorage.removeItem('amg_isLoggedIn');
+                    localStorage.removeItem('amg_currentUser');
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  </div>
+                  Keluar
+                </button>
+              </div>
+            </div>
+          )}
           {[
             { id: 'dashboard', label: 'Dashboard', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg> },
             { id: 'units', label: 'Unit', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg> },
             { id: 'tenants', label: 'Penyewa', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> },
             { id: 'transactions', label: 'Transaksi', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg> },
-            { id: 'reports', label: 'Laporan', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> }
+            { id: 'reports', label: 'Laporan', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+            { id: 'more', label: 'Lainnya', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg> }
           ].map(tab => (
             <button 
               key={tab.id} 
-              onClick={() => setActiveTab(tab.id as any)} 
-              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${activeTab === tab.id ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (tab.id === 'more') {
+                  setIsUserMenuOpen(!isUserMenuOpen);
+                } else {
+                  setActiveTab(tab.id as any);
+                  setIsUserMenuOpen(false);
+                }
+              }} 
+              className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${
+                (tab.id === 'more' && isUserMenuOpen) || (activeTab === tab.id && tab.id !== 'more') 
+                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+              }`}
             >
               {tab.icon}
               <span className="text-[10px] font-bold landscape:text-xs">{tab.label}</span>
@@ -5108,6 +5352,7 @@ const App: React.FC = () => {
                                     const newData = { ...data, users: updatedUsers };
                                     setData(newData); saveData(newData);
                                     showToast(`Role ${user.username} berhasil diubah`);
+                                    logAction('UPDATE', 'User', `Ubah role user ${user.username} menjadi ${e.target.value}`);
                                   });
                                 }}
                                 className="text-xs font-bold px-2 py-1 border border-slate-200 dark:border-slate-700 rounded outline-none bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500/50 transition-all"
@@ -5130,6 +5375,7 @@ const App: React.FC = () => {
                                     const newData = { ...data, users: updatedUsers };
                                     setData(newData); saveData(newData);
                                     showToast('User berhasil dihapus');
+                                    logAction('DELETE', 'User', `Hapus user ${user.username}`);
                                   });
                                 })}
                                 className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 text-xs font-bold px-2 py-1 border border-rose-200 dark:border-rose-900/50 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"

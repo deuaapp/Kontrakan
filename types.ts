@@ -104,6 +104,15 @@ export interface User {
   allowedAreas?: string[];
 }
 
+export interface AppLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'UPLOAD' | 'LOGIN' | 'OTHER';
+  entity: string;
+  details: string;
+}
+
 export interface AppData {
   units: RentalUnit[];
   tenants: Tenant[];
@@ -116,6 +125,7 @@ export interface AppData {
   users: User[];
   bookClosings?: BookClosing[];
   dividendRecipients?: DividendRecipient[];
+  logs?: AppLog[];
   settings?: {
     cashPercentage: number;
     savingPercentage: number;

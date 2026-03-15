@@ -25,7 +25,8 @@ const initialData: AppData = {
   expenseCategories: ['Listrik', 'Air', 'Perbaikan', 'Kebersihan', 'Lainnya'],
   users: [
     { username: 'admin', pin: '1234', role: 'admin' }
-  ]
+  ],
+  logs: []
 };
 
 export const loadData = async (): Promise<AppData> => {
@@ -42,6 +43,10 @@ export const loadData = async (): Promise<AppData> => {
     let needsSync = false;
     
     // Migrations
+    if (!data.logs) {
+      data.logs = [];
+      needsSync = true;
+    }
     if (!data.areas || data.areas.length === 0) {
       data.areas = Array.from(new Set((data.units || []).map((u: RentalUnit) => u.area)));
       needsSync = true;
