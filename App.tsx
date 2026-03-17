@@ -73,9 +73,167 @@ const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'units' | 'tenants' | 'transactions' | 'reports' | 'logs'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [expandedAreas, setExpandedAreas] = useState<string[]>([]);
+
+  const toggleAreaExpansion = (area: string) => {
+    setExpandedAreas(prev => 
+      prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
+    );
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    localStorage.removeItem('amg_isLoggedIn');
+    localStorage.removeItem('amg_currentUser');
+    setIsUserMenuOpen(false);
+  };
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setIsUserMenuOpen(false);
+  };
+
+  const openChangePin = () => {
+    setIsChangePinModalOpen(true);
+    setIsUserMenuOpen(false);
+  };
+
+  const toggleCalculator = () => {
+    setIsCalculatorOpen(prev => !prev);
+    setIsUserMenuOpen(false);
+  };
+
+  const NavItem = ({ 
+    active, 
+    onClick, 
+    label, 
+    icon, 
+    color = 'indigo' 
+  }: { 
+    active: boolean, 
+    onClick: () => void, 
+    label: string, 
+    icon: React.ReactNode,
+    color?: 'indigo' | 'emerald'
+  }) => {
+    const activeClasses = color === 'indigo' 
+      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none' 
+      : 'bg-emerald-600 text-white shadow-lg shadow-emerald-100 dark:shadow-none';
+    
+    const hoverClasses = color === 'indigo'
+      ? 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400'
+      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400';
+
+    const indicatorClasses = color === 'indigo' ? 'bg-indigo-600' : 'bg-emerald-600';
+
+    return (
+      <button 
+        onClick={onClick}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${active ? activeClasses : hoverClasses} w-full`}
+        title={isSidebarCollapsed ? label : ""}
+      >
+        <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{icon}</span>
+        <div className={`overflow-hidden transition-all duration-300 flex items-center ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
+          <span className="font-medium whitespace-nowrap ml-1">{label}</span>
+        </div>
+        {isSidebarCollapsed && active && (
+          <div className={`absolute left-0 w-1 h-6 ${indicatorClasses} rounded-r-full`} />
+        )}
+      </button>
+    );
+  };
+
+  const UserMenu = ({ 
+    isCollapsed = false, 
+    align = 'left',
+    color = 'indigo'
+  }: { 
+    isCollapsed?: boolean, 
+    align?: 'left' | 'right',
+    color?: 'indigo' | 'emerald'
+  }) => {
+    const accentBg = color === 'indigo' ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20';
+    const accentText = color === 'indigo' ? 'text-indigo-600 dark:text-indigo-400' : 'text-emerald-600 dark:text-emerald-400';
+    const accentIconBg = color === 'indigo' ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30';
+    const accentIconText = color === 'indigo' ? 'text-indigo-600' : 'text-emerald-600';
+
+    return (
+      <div className={`absolute bottom-full mb-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200 ${isCollapsed ? 'w-48 left-16' : align === 'right' ? 'right-4 w-48' : 'left-4 right-4'}`}>
+        <div className="p-2 space-y-1">
+          {(align === 'right' || isCollapsed) && (
+            <div className="px-3 py-2 mb-1 border-b border-slate-50 dark:border-slate-800">
+              <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold tracking-wider">{currentUser?.role}</p>
+            </div>
+          )}
+          <button 
+            onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+          >
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+              {theme === 'light' ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+              )}
+            </div>
+            {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
+          </button>
+          
+          {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+            >
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </div>
+              Ganti Aplikasi
+            </button>
+          )}
+
+          <button 
+            onClick={(e) => { e.stopPropagation(); toggleCalculator(); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${isCalculatorOpen ? accentBg + ' ' + accentText : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+          >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCalculatorOpen ? accentIconBg + ' ' + accentIconText : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            Kalkulator
+          </button>
+
+          <button 
+            onClick={(e) => { e.stopPropagation(); openChangePin(); }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
+          >
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            Ganti PIN
+          </button>
+
+          <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
+
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleLogout(); }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
+          >
+            <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            </div>
+            Keluar
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   
   // Accounting Settings State
-  const [accountingTab, setAccountingTab] = useState<'closing' | 'settings' | 'balance'>('closing');
+  const [accountingTab, setAccountingTab] = useState<'closing' | 'settings' | 'balance' | 'history'>('closing');
   const [cashPercentage, setCashPercentage] = useState(20);
   const [savingPercentage, setSavingPercentage] = useState(30);
   const [dividendRecipients, setDividendRecipients] = useState<DividendRecipient[]>([]);
@@ -1837,118 +1995,52 @@ const App: React.FC = () => {
           </div>
           
           <nav className="flex-1 px-3 space-y-1 mt-6 overflow-y-auto no-scrollbar">
-            <button
-              onClick={() => setAccountingTab('closing')}
-              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'closing' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
-              title={isSidebarCollapsed ? "Tutup Buku" : ""}
-            >
-              <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></span>
-              {!isSidebarCollapsed && <span>Tutup Buku</span>}
-            </button>
-            <button
-              onClick={() => setAccountingTab('balance')}
-              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'balance' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
-              title={isSidebarCollapsed ? "Saldo" : ""}
-            >
-              <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
-              {!isSidebarCollapsed && <span>Saldo</span>}
-            </button>
+            <NavItem 
+              active={accountingTab === 'closing'} 
+              onClick={() => setAccountingTab('closing')} 
+              label="Tutup Buku" 
+              icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} 
+              color="emerald"
+            />
+            <NavItem 
+              active={accountingTab === 'balance'} 
+              onClick={() => setAccountingTab('balance')} 
+              label="Saldo" 
+              icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} 
+              color="emerald"
+            />
+            <NavItem 
+              active={accountingTab === 'history'} 
+              onClick={() => setAccountingTab('history')} 
+              label="Riwayat" 
+              icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} 
+              color="emerald"
+            />
             {isAccountingEditor && (
-              <button
-                onClick={() => setAccountingTab('settings')}
-                className={`w-full px-4 py-3 rounded-xl font-medium flex items-center gap-3 transition-all duration-300 ${accountingTab === 'settings' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400'}`}
-                title={isSidebarCollapsed ? "Pengaturan" : ""}
-              >
-                <span className="shrink-0"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></span>
-                {!isSidebarCollapsed && <span>Pengaturan</span>}
-              </button>
+              <NavItem 
+                active={accountingTab === 'settings'} 
+                onClick={() => setAccountingTab('settings')} 
+                label="Pengaturan" 
+                icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} 
+                color="emerald"
+              />
             )}
           </nav>
           <div className="p-4 border-t border-slate-50 dark:border-slate-800 relative">
-            {/* User Menu Popover */}
             {isUserMenuOpen && (
-              <div className={`absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200 ${isSidebarCollapsed ? 'w-48 left-16 right-auto' : ''}`}>
-                <div className="p-2 space-y-1">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setTheme(theme === 'light' ? 'dark' : 'light'); setIsUserMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                      {theme === 'light' ? (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                      )}
-                    </div>
-                    {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
-                  </button>
-                  
-                  {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                      </div>
-                      Ganti Aplikasi
-                    </button>
-                  )}
-
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setIsCalculatorOpen(!isCalculatorOpen); setIsUserMenuOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${isCalculatorOpen ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCalculatorOpen ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    Kalkulator
-                  </button>
-
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setIsChangePinModalOpen(true); setIsUserMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                    </div>
-                    Ganti PIN
-                  </button>
-
-                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
-
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsLoggedIn(false);
-                      setCurrentUser(null);
-                      localStorage.removeItem('amg_isLoggedIn');
-                      localStorage.removeItem('amg_currentUser');
-                      setIsUserMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    </div>
-                    Keluar
-                  </button>
-                </div>
-              </div>
+              <UserMenu isCollapsed={isSidebarCollapsed} color="emerald" />
             )}
-
+            
             <button 
               onClick={(e) => { e.stopPropagation(); setIsUserMenuOpen(!isUserMenuOpen); }}
-              className={`w-full flex items-center gap-3 p-2 rounded-2xl transition-all duration-300 group ${isUserMenuOpen ? 'bg-slate-50 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              className={`flex items-center gap-3 p-2 rounded-2xl transition-all duration-300 w-full group ${isUserMenuOpen ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-emerald-600/20 group-hover:scale-105 transition-transform">
                 {currentUser?.username.charAt(0).toUpperCase()}
               </div>
-              <div className={`flex-1 text-left transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+              <div className={`flex-1 text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
                 <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{currentUser?.role}</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{currentUser?.role}</p>
               </div>
               {!isSidebarCollapsed && (
                 <svg className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1971,6 +2063,7 @@ const App: React.FC = () => {
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                   {accountingTab === 'closing' ? 'Tutup Buku Bulanan' : 
                    accountingTab === 'balance' ? 'Saldo & Ringkasan' : 
+                   accountingTab === 'history' ? 'Riwayat Tutup Buku' :
                    'Pengaturan Pembukuan'}
                 </h2>
                 {accountingTab === 'closing' && (
@@ -1990,6 +2083,7 @@ const App: React.FC = () => {
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                 {accountingTab === 'closing' ? 'Tutup Buku' : 
                  accountingTab === 'balance' ? 'Saldo' : 
+                 accountingTab === 'history' ? 'Riwayat' : 
                  'Pengaturan'}
               </h2>
               {accountingTab === 'closing' && (
@@ -2297,7 +2391,10 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </div>
-
+              </div>
+            </div>
+          ) : accountingTab === 'history' ? (
+            <div className="space-y-6">
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
                   <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white">Riwayat Tutup Buku</h3>
@@ -2404,7 +2501,6 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </div>
             </div>
           ) : accountingTab === 'balance' ? (
             <div className="space-y-6">
@@ -2468,11 +2564,16 @@ const App: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Riwayat Transaksi</h3>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Tampilkan:</span>
+                <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Riwayat Transaksi</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:flex items-center gap-3 sm:gap-4 w-full lg:w-auto">
+                    <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-700 sm:border-none sm:bg-transparent sm:p-0">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tampilkan:</span>
                       <Dropdown 
                         value={balanceItemsPerPage}
                         options={[
@@ -2489,8 +2590,8 @@ const App: React.FC = () => {
                         className="w-24"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Filter Tahun:</span>
+                    <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-700 sm:border-none sm:bg-transparent sm:p-0">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Tahun:</span>
                       <Dropdown 
                         value={balanceFilterYear}
                         options={[{ label: 'Semua', value: 'all' }, ...balanceYearOptions.map(y => ({ label: y.toString(), value: y }))]}
@@ -2503,16 +2604,16 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm whitespace-nowrap">
+                <div className="overflow-x-auto no-scrollbar sm:scrollbar-thin sm:scrollbar-thumb-slate-200 dark:sm:scrollbar-thumb-slate-800">
+                  <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
                     <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
                       <tr>
-                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Tanggal / Periode</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Keterangan</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Zakat</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Kas</th>
-                        <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Saving</th>
-                        {isAccountingEditor && <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-center">Aksi</th>}
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px]">Tanggal / Periode</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px]">Keterangan</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Zakat</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Kas</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Saving</th>
+                        {isAccountingEditor && <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-center">Aksi</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2608,15 +2709,17 @@ const App: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 transition-colors">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4">Persentase Alokasi Laba</h3>
+                <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Persentase Alokasi Laba</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Diambil dari Laba Bersih sebelum alokasi lainnya.</p>
+                </div>
                 
                 <div className="space-y-4">
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center">
                       <span className="font-medium text-slate-700 dark:text-slate-300">Zakat</span>
                       <span className="font-bold text-slate-900 dark:text-white">2.5%</span>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Diambil dari Laba Bersih sebelum alokasi lainnya.</p>
                   </div>
 
                   <div>
@@ -2654,27 +2757,31 @@ const App: React.FC = () => {
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4">Penerima Dividen</h3>
                 
                 <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col gap-2">
                     <input 
                       type="text" 
                       placeholder="Nama Penerima" 
                       value={newRecipientName}
                       onChange={(e) => setNewRecipientName(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                      className="w-full px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                     />
                     <div className="flex gap-2">
-                      <input 
-                        type="number" 
-                        placeholder="%" 
-                        value={newRecipientPercentage || ''}
-                        onChange={(e) => setNewRecipientPercentage(Number(e.target.value))}
-                        className="w-20 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
-                      />
+                      <div className="relative flex-1">
+                        <input 
+                          type="number" 
+                          placeholder="Persentase" 
+                          value={newRecipientPercentage || ''}
+                          onChange={(e) => setNewRecipientPercentage(Number(e.target.value))}
+                          className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                      </div>
                       <button 
                         onClick={handleAddRecipient}
-                        className="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-colors flex-1 sm:flex-none flex justify-center items-center shadow-lg shadow-emerald-200 dark:shadow-none"
+                        className="bg-emerald-600 text-white px-6 py-2 rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200 dark:shadow-none whitespace-nowrap"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                        <span className="sm:hidden font-bold">Tambah</span>
                       </button>
                     </div>
                   </div>
@@ -2708,84 +2815,12 @@ const App: React.FC = () => {
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 py-2 landscape:py-1 flex justify-between items-center z-40 pb-4 landscape:pb-1 transition-colors duration-300">
           {/* Mobile User Menu Popover */}
           {isUserMenuOpen && (
-            <div className="absolute bottom-full right-4 mb-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200">
-              <div className="p-2 space-y-1">
-                <div className="px-3 py-2 mb-1 border-b border-slate-50 dark:border-slate-800">
-                  <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{currentUser?.username}</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase">{currentUser?.role}</p>
-                </div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setTheme(theme === 'light' ? 'dark' : 'light'); setIsUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                    {theme === 'light' ? (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.95 16.95l.707.707M7.05 7.05l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                    )}
-                  </div>
-                  {theme === 'light' ? "Mode Gelap" : "Mode Terang"}
-                </button>
-                
-                {(currentUser?.role === 'admin' || currentUser?.role === 'viewer' || currentUser?.role === 'user' || currentUser?.role === 'accountant') && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setShowPortal(true); setIsUserMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    </div>
-                    Ganti Aplikasi
-                  </button>
-                )}
-
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setIsCalculatorOpen(!isCalculatorOpen); setIsUserMenuOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${isCalculatorOpen ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCalculatorOpen ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  Kalkulator
-                </button>
-
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setIsChangePinModalOpen(true); setIsUserMenuOpen(false); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                  </div>
-                  Ganti PIN
-                </button>
-
-                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
-
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsLoggedIn(false);
-                    setCurrentUser(null);
-                    localStorage.removeItem('amg_isLoggedIn');
-                    localStorage.removeItem('amg_currentUser');
-                    setIsUserMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-sm font-bold"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                  </div>
-                  Keluar
-                </button>
-              </div>
-            </div>
+            <UserMenu align="right" color="emerald" />
           )}
           {[
             { id: 'closing', label: 'Tutup Buku', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
             { id: 'balance', label: 'Saldo', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+            { id: 'history', label: 'Riwayat', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
             ...(isAccountingEditor ? [{ id: 'settings', label: 'Pengaturan', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> }] : []),
             { id: 'more', label: 'Lainnya', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg> }
           ].map(tab => (
@@ -3591,21 +3626,6 @@ const App: React.FC = () => {
   );
 }
 
-  const NavItem = ({ id, label, icon }: { id: typeof activeTab, label: string, icon: React.ReactNode }) => (
-    <button 
-      onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${activeTab === id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400'} w-full`}
-      title={isSidebarCollapsed ? label : ""}
-    >
-      <span className="shrink-0 transition-transform duration-300 group-hover:scale-110">{icon}</span>
-      <div className={`overflow-hidden transition-all duration-300 flex items-center ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-40 opacity-100'}`}>
-        <span className="font-medium whitespace-nowrap ml-1">{label}</span>
-      </div>
-      {isSidebarCollapsed && activeTab === id && (
-        <div className="absolute left-0 w-1 h-6 bg-indigo-600 rounded-r-full" />
-      )}
-    </button>
-  );
 
   return (
     <div className="h-screen flex bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
@@ -3632,12 +3652,12 @@ const App: React.FC = () => {
         </div>
         
         <nav className="flex-1 px-3 space-y-1 mt-6 overflow-y-auto no-scrollbar">
-          <NavItem id="dashboard" label="Dashboard" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>} />
-          <NavItem id="units" label="Unit & Wilayah" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
-          <NavItem id="tenants" label="Penyewa" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>} />
-          <NavItem id="transactions" label="Transaksi" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
-          <NavItem id="reports" label="Laporan" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
-          <NavItem id="logs" label="Riwayat" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+          <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} label="Dashboard" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>} />
+          <NavItem active={activeTab === 'units'} onClick={() => setActiveTab('units')} label="Unit & Wilayah" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
+          <NavItem active={activeTab === 'tenants'} onClick={() => setActiveTab('tenants')} label="Penyewa" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>} />
+          <NavItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} label="Transaksi" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
+          <NavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} label="Laporan" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
+          <NavItem active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} label="Riwayat" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
         </nav>
         <div className="p-4 border-t border-slate-50 dark:border-slate-800 relative">
           {/* User Menu Popover */}
@@ -3937,44 +3957,144 @@ const App: React.FC = () => {
 
           {activeTab === 'units' && (
             <div className="space-y-10 animate-in fade-in duration-300">
-               <div className="flex justify-between items-center">
-                 <h3 className="text-xl font-bold text-slate-800 dark:text-white">Unit Wilayah</h3>
+               <div className="flex justify-end items-center">
+                 <div className="flex gap-2">
+                   <button 
+                     onClick={() => setExpandedAreas([])}
+                     className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
+                   >
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                     Collapse All
+                   </button>
+                   <button 
+                     onClick={() => setExpandedAreas(data.areas)}
+                     className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
+                   >
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                     Expand All
+                   </button>
+                 </div>
                </div>
                
-               {data.areas.map(area => (
-                 <div key={area} className="space-y-4">
-                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-                      <h4 className="text-lg font-bold text-slate-700 dark:text-slate-200">{area}</h4>
-                      {currentUser?.role === 'admin' && (
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEditAreaInit(area)} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                          <button onClick={() => handleDeleteArea(area)} className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+               {data.areas.map(area => {
+                 const areaUnits = data.units.filter(u => u.area === area);
+                 const areaTenants = data.tenants.filter(t => areaUnits.some(u => u.id === t.unitId));
+                 const totalArrears = areaTenants.reduce((acc, t) => {
+                   const unit = areaUnits.find(u => u.id === t.unitId);
+                   return acc + (unit ? calculateArrears(t, unit) : 0);
+                 }, 0);
+                 const isExpanded = expandedAreas.includes(area);
+
+                 return (
+                   <div key={area} className="space-y-4">
+                     <div 
+                       onClick={() => toggleAreaExpansion(area)}
+                       className={`group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                         isExpanded 
+                           ? 'bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-900/50 shadow-md' 
+                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 hover:shadow-sm'
+                       }`}
+                     >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                            isExpanded ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600'
+                          }`}>
+                            <svg className={`w-6 h-6 transition-transform duration-300 ${!isExpanded ? '-rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-bold text-slate-800 dark:text-white">{area}</h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                {areaUnits.length} Unit
+                              </span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                areaTenants.length === areaUnits.length 
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' 
+                                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600'
+                              }`}>
+                                {areaTenants.length} Terisi
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      )}
+
+                        <div className="flex items-center justify-between md:justify-end gap-4 mt-4 md:mt-0">
+                          <div className="flex gap-3">
+                            {totalArrears > 0 && (
+                              <div className="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/30">
+                                <p className="text-[10px] font-bold text-rose-500 uppercase leading-none mb-1">Tunggakan</p>
+                                <p className="text-sm font-bold text-rose-600 dark:text-rose-400 leading-none">
+                                  Rp {totalArrears.toLocaleString('id-ID')}
+                                </p>
+                              </div>
+                            )}
+                            <div className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30 text-right">
+                              <p className="text-[10px] font-bold text-emerald-500 uppercase leading-none mb-1">Okupansi</p>
+                              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 leading-none">
+                                {Math.round((areaTenants.length / (areaUnits.length || 1)) * 100)}%
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {currentUser?.role === 'admin' && (
+                              <div className="flex gap-1 border-l border-slate-200 dark:border-slate-700 pl-4" onClick={e => e.stopPropagation()}>
+                                <button 
+                                  onClick={() => handleEditAreaInit(area)} 
+                                  className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all"
+                                  title="Edit Wilayah"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteArea(area)} 
+                                  className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                                  title="Hapus Wilayah"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </div>
+                            )}
+                            
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
+                              isExpanded ? 'border-indigo-200 dark:border-indigo-800 text-indigo-600' : 'border-slate-200 dark:border-slate-700 text-slate-400'
+                            }`}>
+                              <svg className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                     </div>
+
+                     {isExpanded && (
+                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in slide-in-from-top-4 duration-300 pt-2">
+                         {areaUnits.map(unit => {
+                           const tenant = data.tenants.find(t => t.unitId === unit.id);
+                           const arrears = tenant ? calculateArrears(tenant, unit) : 0;
+                           return (
+                             <UnitCard 
+                              key={unit.id} 
+                              unit={unit} 
+                              tenant={tenant}
+                              arrears={arrears}
+                              onAction={handleUnitAction} 
+                              onEdit={handleEditUnitInit} 
+                              onDelete={handleDeleteUnit} 
+                              onEditTenant={handleEditTenantInit} 
+                              onDeleteTenant={handleDeleteTenant} 
+                              userRole={currentUser?.role}
+                              canEdit={hasWriteAccessToArea(area)}
+                             />
+                           );
+                         })}
+                       </div>
+                     )}
                    </div>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                     {data.units.filter(u => u.area === area).map(unit => {
-                       const tenant = data.tenants.find(t => t.unitId === unit.id);
-                       const arrears = tenant ? calculateArrears(tenant, unit) : 0;
-                       return (
-                         <UnitCard 
-                          key={unit.id} 
-                          unit={unit} 
-                          tenant={tenant}
-                          arrears={arrears}
-                          onAction={handleUnitAction} 
-                          onEdit={handleEditUnitInit} 
-                          onDelete={handleDeleteUnit} 
-                          onEditTenant={handleEditTenantInit} 
-                          onDeleteTenant={handleDeleteTenant} 
-                          userRole={currentUser?.role}
-                          canEdit={hasWriteAccessToArea(area)}
-                         />
-                       );
-                     })}
-                   </div>
-                 </div>
-               ))}
+                 );
+               })}
             </div>
           )}
 
@@ -4526,6 +4646,16 @@ const App: React.FC = () => {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                   </div>
                   Ganti PIN
+                </button>
+
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setActiveTab('logs'); setIsUserMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${activeTab === 'logs' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${activeTab === 'logs' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  Riwayat
                 </button>
 
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
