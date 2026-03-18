@@ -814,6 +814,7 @@ const App: React.FC = () => {
       setData(updatedData);
       saveData(updatedData);
       showToast('Pengaturan berhasil disimpan');
+      logAction('UPDATE', 'Settings', 'Update pengaturan alokasi laba');
     });
   };
 
@@ -1266,6 +1267,7 @@ const App: React.FC = () => {
         const newData = { ...data, units: data.units.filter(u => u.id !== unitId) };
         setData(newData); saveData(newData);
         showToast('Unit berhasil dihapus');
+        logAction('DELETE', 'Unit', 'Hapus unit');
       });
     });
   };
@@ -3033,6 +3035,7 @@ const App: React.FC = () => {
                   saveData(updatedData);
                   setIsAddOtherIncomeModalOpen(false);
                   showToast('Pemasukan lain berhasil dicatat');
+                  logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.description}: Rp ${newIncome.amount.toLocaleString('id-ID')}`);
                 });
               }} className="space-y-4">
                 <div>
@@ -4385,6 +4388,7 @@ const App: React.FC = () => {
                       const newData = { ...data, logs: [] };
                       setData(newData); saveData(newData);
                       showToast('Riwayat aktivitas berhasil dibersihkan');
+                      logAction('DELETE', 'Log', 'Bersihkan riwayat aktivitas');
                     })}
                     className="px-4 py-2 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl font-bold hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-all text-sm flex items-center gap-2"
                   >
@@ -5008,6 +5012,7 @@ const App: React.FC = () => {
                 saveData(updatedData);
                 setIsAddOtherIncomeModalOpen(false);
                 showToast('Pemasukan lain berhasil dicatat');
+                logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.description}: Rp ${newIncome.amount.toLocaleString('id-ID')}`);
               });
             }} className="space-y-4">
               <div>
@@ -5462,6 +5467,7 @@ const App: React.FC = () => {
                                   const newData = { ...data, users: updatedUsers };
                                   setData(newData); saveData(newData);
                                   showToast(`Wilayah akses ${user.username} diperbarui`);
+                                  logAction('UPDATE', 'User', `Update wilayah akses user ${user.username}`);
                                 });
                               }}
                               placeholder="Pilih Wilayah"
