@@ -98,7 +98,14 @@ function doPost(e) {
       var blob = Utilities.newBlob(bytes, contentType, data.filename);
                                                           
       var file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      
+      // Bungkus pengaturan sharing dengan try-catch agar tidak error jika fitur sharing dibatasi
+      try {
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) {
+        Logger.log("Gagal mengatur sharing: " + e.toString());
+        // Tetap lanjut meskipun sharing gagal
+      }
                                                                             
       return ContentService.createTextOutput(JSON.stringify({
         success: true,

@@ -33,6 +33,7 @@ export interface Payment {
   periodCovered: string; // e.g., "Januari 2024"
   notes: string;
   isInstallment: boolean;
+  proofUrl?: string;
   createdAt?: string;
 }
 

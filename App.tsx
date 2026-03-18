@@ -596,7 +596,7 @@ const App: React.FC = () => {
 
     const timer = setTimeout(() => {
       saveData(data);
-    }, 2000); // 2 second debounce to avoid hitting GAS too hard
+    }, 1000); // 1 second debounce
 
     return () => clearTimeout(timer);
   }, [data]);
@@ -1365,6 +1365,7 @@ const App: React.FC = () => {
         units: data.units.map(u => u.id === selectedUnit.id ? { ...u, status: UnitStatus.OCCUPIED } : u)
       };
       setData(newData); 
+      saveData(newData);
       setIsAddTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Penyewa berhasil ditambahkan');
       logAction('CREATE', 'Tenant', `Tambah penyewa ${newTenant.name} di unit ${selectedUnit.name}`);
@@ -1397,6 +1398,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, tenants: data.tenants.map(t => t.id === selectedTenant.id ? updatedTenant : t) };
       setData(newData); 
+      saveData(newData);
       setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
       logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name}`);
@@ -1528,11 +1530,13 @@ const App: React.FC = () => {
         periodCovered: formData.get('period') as string,
         notes: formData.get('notes') as string,
         isInstallment: formData.get('isInstallment') === 'on',
+        proofUrl: uploadedFileBase64 || undefined,
         createdAt: new Date().toISOString()
       };
       const newData = { ...data, payments: [...data.payments, newPayment] };
       setData(newData); 
-      setIsPaymentModalOpen(false);
+      saveData(newData);
+      setIsPaymentModalOpen(false); setUploadedFileBase64(null);
       showToast('Pembayaran berhasil ditambahkan');
       logAction('CREATE', 'Payment', `Tambah pembayaran Rp ${newPayment.amount.toLocaleString('id-ID')} untuk ${newPayment.periodCovered}`);
     });
@@ -1540,6 +1544,7 @@ const App: React.FC = () => {
 
   const handleEditPaymentInit = (payment: Payment) => {
     setSelectedPayment(payment);
+    setUploadedFileBase64(payment.proofUrl || null);
     setIsEditPaymentModalOpen(true);
   };
 
@@ -1567,11 +1572,13 @@ const App: React.FC = () => {
         date: formData.get('date') as string,
         periodCovered: formData.get('period') as string,
         notes: formData.get('notes') as string,
-        isInstallment: formData.get('isInstallment') === 'on'
+        isInstallment: formData.get('isInstallment') === 'on',
+        proofUrl: uploadedFileBase64 || selectedPayment.proofUrl
       };
       const newData = { ...data, payments: data.payments.map(p => p.id === selectedPayment.id ? updatedPayment : p) };
       setData(newData); 
-      setIsEditPaymentModalOpen(false); setSelectedPayment(null);
+      saveData(newData);
+      setIsEditPaymentModalOpen(false); setSelectedPayment(null); setUploadedFileBase64(null);
       showToast('Data pembayaran berhasil diperbarui');
       logAction('UPDATE', 'Payment', `Update pembayaran Rp ${updatedPayment.amount.toLocaleString('id-ID')}`);
     });
@@ -1630,6 +1637,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, expenses: [...data.expenses, newExpense] };
       setData(newData); 
+      saveData(newData);
       setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
       showToast('Pengeluaran berhasil ditambahkan');
       logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.description}: Rp ${newExpense.amount.toLocaleString('id-ID')}`);
@@ -1677,6 +1685,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, expenses: data.expenses.map(ex => ex.id === selectedExpense.id ? updatedExpense : ex) };
       setData(newData); 
+      saveData(newData);
       setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
       logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.description}`);
@@ -4294,6 +4303,15 @@ const App: React.FC = () => {
                             {isTransactionEditor && (
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <div className="flex justify-end gap-2">
+                                  {p.proofUrl && (
+                                    <button onClick={() => {
+                                      const directUrl = getDirectDriveLink(p.proofUrl!);
+                                      const win = window.open();
+                                      win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
+                                    }} className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400" title="Lihat Bukti">
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    </button>
+                                  )}
                                   {(!unit || hasWriteAccessToArea(unit.area)) && (
                                     <>
                                       <button onClick={() => handleEditPaymentInit(p)} className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
@@ -4781,6 +4799,37 @@ const App: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan</label>
                 <textarea name="notes" placeholder="Catatan" className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all h-20"></textarea>
               </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bukti Pembayaran</label>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group transition-colors">
+                    {uploadedFileBase64 ? (
+                      <>
+                        <img src={getDirectDriveLink(uploadedFileBase64)} alt="Preview" className="w-full h-full object-cover" />
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const directUrl = getDirectDriveLink(uploadedFileBase64);
+                            const win = window.open();
+                            win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
+                          }}
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold"
+                        >
+                          Klik Lihat Full
+                        </button>
+                      </>
+                    ) : (
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    )}
+                  </div>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {isUploading ? 'Mengunggah...' : 'Upload Foto'}
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
+                  </label>
+                </div>
+              </div>
+
               <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
               <button type="button" onClick={() => setIsPaymentModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
@@ -4814,6 +4863,37 @@ const App: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan</label>
                 <textarea name="notes" defaultValue={selectedPayment.notes} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all h-20"></textarea>
               </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bukti Pembayaran</label>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 group transition-colors">
+                    {uploadedFileBase64 ? (
+                      <>
+                        <img src={getDirectDriveLink(uploadedFileBase64)} alt="Preview" className="w-full h-full object-cover" />
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const directUrl = getDirectDriveLink(uploadedFileBase64);
+                            const win = window.open();
+                            win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
+                          }}
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold"
+                        >
+                          Klik Lihat Full
+                        </button>
+                      </>
+                    ) : (
+                      <svg className="w-12 h-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    )}
+                  </div>
+                  <label className={`cursor-pointer bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {isUploading ? 'Mengunggah...' : 'Upload Foto'}
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isUploading} />
+                  </label>
+                </div>
+              </div>
+
               <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Update</button>
               <button type="button" onClick={() => setIsEditPaymentModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
