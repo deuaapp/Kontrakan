@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { loadData, saveData, uploadFileToGAS } from './services/storageService';
@@ -242,7 +242,7 @@ const App: React.FC = () => {
 
   // ... (rest of the state)
 
-  const logAction = (action: AppLog['action'], entity: string, details: string) => {
+  const logAction = useCallback((action: AppLog['action'], entity: string, details: string) => {
     const newLog: AppLog = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
       timestamp: new Date().toISOString(),
@@ -252,12 +252,11 @@ const App: React.FC = () => {
       details
     };
     
-    setData(prev => {
-      const newData = { ...prev, logs: [newLog, ...(prev.logs || [])].slice(0, 1000) };
-      saveData(newData);
-      return newData;
-    });
-  };
+    setData(prev => ({
+      ...prev,
+      logs: [newLog, ...(prev.logs || [])].slice(0, 1000)
+    }));
+  }, [currentUser]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,7 +322,8 @@ const App: React.FC = () => {
           createdAt: new Date().toISOString()
         };
         const newData = { ...data, walletTransactions: [...(data.walletTransactions || []), newTx] };
-        setData(newData); saveData(newData); setIsWalletTransactionModalOpen(false);
+        setData(newData); 
+        setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil dicatat');
         logAction('CREATE', 'Wallet', `Tambah transaksi ${newTx.wallet}: ${newTx.description}`);
       }
@@ -578,10 +578,28 @@ const App: React.FC = () => {
         const defaultPeriod = getDefaultUnclosedPeriod(initialData);
         setReportMonth(defaultPeriod.month);
         setReportYear(defaultPeriod.year);
+        
+        // Mark initial load as done AFTER setting data to avoid immediate auto-save
+        setTimeout(() => {
+          isInitialLoadDone.current = true;
+        }, 1000);
       });
     };
     init();
   }, []);
+
+  const isInitialLoadDone = useRef(false);
+
+  // Auto-save data to GAS when it changes (with debounce)
+  useEffect(() => {
+    if (!isInitialLoadDone.current) return;
+
+    const timer = setTimeout(() => {
+      saveData(data);
+    }, 2000); // 2 second debounce to avoid hitting GAS too hard
+
+    return () => clearTimeout(timer);
+  }, [data]);
 
   const currentMonthDate = new Date();
   const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
@@ -705,7 +723,6 @@ const App: React.FC = () => {
     };
     
     setData(updatedData);
-    saveData(updatedData);
     setIsConfirmCloseBookModalOpen(false);
     showToast('Tutup buku berhasil! Transaksi periode ini telah di-reset');
     logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear}`);
@@ -1290,7 +1307,8 @@ const App: React.FC = () => {
         monthlyPrice: Number(formData.get('price')),
       };
       const newData = { ...data, units: data.units.map(u => u.id === selectedUnit.id ? updatedUnit : u) };
-      setData(newData); saveData(newData); setIsEditUnitModalOpen(false);
+      setData(newData); 
+      setIsEditUnitModalOpen(false);
       showToast('Data unit berhasil diperbarui');
       logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name}`);
     });
@@ -1314,7 +1332,8 @@ const App: React.FC = () => {
         status: UnitStatus.VACANT
       };
       const newData = { ...data, units: [...data.units, newUnit] };
-      setData(newData); saveData(newData); setIsAddUnitModalOpen(false);
+      setData(newData); 
+      setIsAddUnitModalOpen(false);
       showToast('Unit baru berhasil ditambahkan');
       logAction('CREATE', 'Unit', `Tambah unit ${newUnit.name}`);
     });
@@ -1345,7 +1364,8 @@ const App: React.FC = () => {
         tenants: [...data.tenants, newTenant],
         units: data.units.map(u => u.id === selectedUnit.id ? { ...u, status: UnitStatus.OCCUPIED } : u)
       };
-      setData(newData); saveData(newData); setIsAddTenantModalOpen(false); setUploadedFileBase64(null);
+      setData(newData); 
+      setIsAddTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Penyewa berhasil ditambahkan');
       logAction('CREATE', 'Tenant', `Tambah penyewa ${newTenant.name} di unit ${selectedUnit.name}`);
     });
@@ -1376,7 +1396,8 @@ const App: React.FC = () => {
         documentUrl: uploadedFileBase64 || undefined
       };
       const newData = { ...data, tenants: data.tenants.map(t => t.id === selectedTenant.id ? updatedTenant : t) };
-      setData(newData); saveData(newData); setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
+      setData(newData); 
+      setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
       logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name}`);
     });
@@ -1423,7 +1444,8 @@ const App: React.FC = () => {
       if (!newAreaName) return;
       if (data.areas.includes(newAreaName)) { showToast('Wilayah sudah ada!', 'error'); return; }
       const newData = { ...data, areas: [...data.areas, newAreaName] };
-      setData(newData); saveData(newData); setIsAddAreaModalOpen(false);
+      setData(newData); 
+      setIsAddAreaModalOpen(false);
       showToast('Wilayah berhasil ditambahkan');
       logAction('CREATE', 'Area', `Tambah wilayah ${newAreaName}`);
     });
@@ -1450,7 +1472,8 @@ const App: React.FC = () => {
         areas: data.areas.map(a => a === selectedArea ? newName : a),
         units: data.units.map(u => u.area === selectedArea ? { ...u, area: newName } : u)
       };
-      setData(newData); saveData(newData); setIsEditAreaModalOpen(false);
+      setData(newData); 
+      setIsEditAreaModalOpen(false);
       showToast('Nama wilayah berhasil diperbarui');
       logAction('UPDATE', 'Area', `Update wilayah ${selectedArea} menjadi ${newName}`);
     });
@@ -1508,7 +1531,8 @@ const App: React.FC = () => {
         createdAt: new Date().toISOString()
       };
       const newData = { ...data, payments: [...data.payments, newPayment] };
-      setData(newData); saveData(newData); setIsPaymentModalOpen(false);
+      setData(newData); 
+      setIsPaymentModalOpen(false);
       showToast('Pembayaran berhasil ditambahkan');
       logAction('CREATE', 'Payment', `Tambah pembayaran Rp ${newPayment.amount.toLocaleString('id-ID')} untuk ${newPayment.periodCovered}`);
     });
@@ -1546,7 +1570,8 @@ const App: React.FC = () => {
         isInstallment: formData.get('isInstallment') === 'on'
       };
       const newData = { ...data, payments: data.payments.map(p => p.id === selectedPayment.id ? updatedPayment : p) };
-      setData(newData); saveData(newData); setIsEditPaymentModalOpen(false); setSelectedPayment(null);
+      setData(newData); 
+      setIsEditPaymentModalOpen(false); setSelectedPayment(null);
       showToast('Data pembayaran berhasil diperbarui');
       logAction('UPDATE', 'Payment', `Update pembayaran Rp ${updatedPayment.amount.toLocaleString('id-ID')}`);
     });
@@ -1604,7 +1629,8 @@ const App: React.FC = () => {
         createdAt: new Date().toISOString()
       };
       const newData = { ...data, expenses: [...data.expenses, newExpense] };
-      setData(newData); saveData(newData); setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
+      setData(newData); 
+      setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
       showToast('Pengeluaran berhasil ditambahkan');
       logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.description}: Rp ${newExpense.amount.toLocaleString('id-ID')}`);
     });
@@ -1650,7 +1676,8 @@ const App: React.FC = () => {
         proofUrl: uploadedFileBase64 || selectedExpense.proofUrl
       };
       const newData = { ...data, expenses: data.expenses.map(ex => ex.id === selectedExpense.id ? updatedExpense : ex) };
-      setData(newData); saveData(newData); setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
+      setData(newData); 
+      setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
       logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.description}`);
     });
@@ -1706,7 +1733,8 @@ const App: React.FC = () => {
         ...data, 
         otherIncomes: (data.otherIncomes || []).map(i => i.id === selectedOtherIncome.id ? updatedIncome : i) 
       };
-      setData(newData); saveData(newData); setIsEditOtherIncomeModalOpen(false); setSelectedOtherIncome(null);
+      setData(newData); 
+      setIsEditOtherIncomeModalOpen(false); setSelectedOtherIncome(null);
       showToast('Data pemasukan lain berhasil diperbarui');
       logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.description}`);
     });
@@ -1733,7 +1761,8 @@ const App: React.FC = () => {
       const newCategory = formData.get('categoryName') as string;
       if (newCategory && !data.expenseCategories.includes(newCategory)) {
         const newData = { ...data, expenseCategories: [...data.expenseCategories, newCategory] };
-        setData(newData); saveData(newData); setIsAddCategoryModalOpen(false);
+        setData(newData); 
+        setIsAddCategoryModalOpen(false);
         showToast('Kategori berhasil ditambahkan');
         logAction('CREATE', 'Category', `Tambah kategori pengeluaran ${newCategory}`);
       }
@@ -1755,7 +1784,8 @@ const App: React.FC = () => {
         }
         const newUser: User = { username, pin, role };
         const newData = { ...data, users: [...data.users, newUser] };
-        setData(newData); saveData(newData); setIsAddUserModalOpen(false);
+        setData(newData); 
+        setIsAddUserModalOpen(false);
         showToast('User berhasil ditambahkan');
         logAction('CREATE', 'User', `Tambah user ${username} dengan role ${role}`);
       }
@@ -2147,13 +2177,15 @@ const App: React.FC = () => {
                   <div className="flex flex-col sm:flex-row gap-2 mb-6">
                     {isAccountingEditor && (
                       <>
-                        <button
-                          onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }}
-                          className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                          Pemasukan Lain
-                        </button>
+                        {appMode === 'accounting' && (
+                          <button
+                            onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }}
+                            className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            Pemasukan Lain
+                          </button>
+                        )}
                         <button
                           onClick={() => { setIsAddExpenseModalOpen(true); setUploadedFileBase64(null); }}
                           className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50 font-medium text-sm flex items-center justify-center gap-2 transition-colors w-full sm:w-auto"
@@ -2904,15 +2936,16 @@ const App: React.FC = () => {
 
         {/* Closing Detail Modal */}
         {isClosingDetailModalOpen && selectedBookClosing && selectedBookClosing.allocation && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
-                <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
+                  <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 transition-colors">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500 dark:text-slate-400">Periode</span>
@@ -2928,34 +2961,34 @@ const App: React.FC = () => {
                   <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Rincian Alokasi</h4>
                   
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <span className="font-medium text-slate-700 dark:text-slate-300">Zakat (2.5%)</span>
                       </div>
-                      <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                         </div>
                         <span className="font-medium text-slate-700 dark:text-slate-300">Kas</span>
                       </div>
-                      <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <span className="font-medium text-slate-700 dark:text-slate-300">Saving</span>
                       </div>
-                      <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
@@ -2965,14 +2998,14 @@ const App: React.FC = () => {
                   {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
                     <div className="space-y-3">
                       {selectedBookClosing.allocation.dividends.map((div, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                        <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
                               {div.recipientName.charAt(0).toUpperCase()}
                             </div>
                             <span className="font-medium text-slate-700 dark:text-slate-300">{div.recipientName}</span>
                           </div>
-                          <span className="font-bold text-slate-800 dark:text-white">Rp {div.amount.toLocaleString('id-ID')}</span>
+                          <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {div.amount.toLocaleString('id-ID')}</span>
                         </div>
                       ))}
                       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -2997,7 +3030,8 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* --- MODALS FOR ACCOUNTING MODE --- */}
 
@@ -3791,12 +3825,14 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-1 sm:gap-2 items-center overflow-x-auto no-scrollbar pb-1 sm:pb-0 w-full sm:w-auto">
-             {isTransactionEditor && (
+              {isTransactionEditor && (
                 <>
-                  <button onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }} className="bg-indigo-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Catat Pemasukan Lain">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    <span className="hidden xl:inline">Pemasukan Lain</span>
-                  </button>
+                  {appMode === 'accounting' && (
+                    <button onClick={() => { setIsAddOtherIncomeModalOpen(true); setUploadedFileBase64(null); }} className="bg-indigo-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Catat Pemasukan Lain">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      <span className="hidden xl:inline">Pemasukan Lain</span>
+                    </button>
+                  )}
                   <button onClick={() => { setIsAddExpenseModalOpen(true); setFormAddExpenseArea(''); setFormAddExpenseCategory(''); setUploadedFileBase64(null); }} className="bg-rose-600 text-white p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-rose-700 transition-all flex items-center gap-1 sm:gap-2 shrink-0 flex-1 sm:flex-none justify-center" title="Catat Pengeluaran">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span className="hidden xl:inline">Pengeluaran</span>
@@ -5534,15 +5570,16 @@ const App: React.FC = () => {
 
       {/* Closing Detail Modal */}
       {isClosingDetailModalOpen && selectedBookClosing && selectedBookClosing.allocation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
-              <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
+                <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 border border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500 dark:text-slate-400">Periode</span>
@@ -5558,34 +5595,34 @@ const App: React.FC = () => {
                 <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Rincian Alokasi</h4>
                 
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
                       <span className="font-medium text-slate-700 dark:text-slate-300">Zakat (2.5%)</span>
                     </div>
-                    <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
                   </div>
 
-                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                       </div>
                       <span className="font-medium text-slate-700 dark:text-slate-300">Kas</span>
                     </div>
-                    <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
                   </div>
 
-                  <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       </div>
                       <span className="font-medium text-slate-700 dark:text-slate-300">Saving</span>
                     </div>
-                    <span className="font-bold text-slate-800 dark:text-white">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
               </div>
@@ -5595,14 +5632,14 @@ const App: React.FC = () => {
                 {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
                   <div className="space-y-3">
                     {selectedBookClosing.allocation.dividends.map((div, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
                             {div.recipientName.charAt(0).toUpperCase()}
                           </div>
                           <span className="font-medium text-slate-700 dark:text-slate-300">{div.recipientName}</span>
                         </div>
-                        <span className="font-bold text-slate-800 dark:text-white">Rp {div.amount.toLocaleString('id-ID')}</span>
+                        <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {div.amount.toLocaleString('id-ID')}</span>
                       </div>
                     ))}
                     <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -5627,7 +5664,8 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
         {/* Export Note Modal */}
         {isExportNoteModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] overflow-y-auto">

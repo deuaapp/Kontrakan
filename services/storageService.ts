@@ -87,14 +87,25 @@ export const loadData = async (): Promise<AppData> => {
 
 export const saveData = async (data: AppData): Promise<void> => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  console.log('Saving data to GAS...', { 
+    units: data.units?.length, 
+    tenants: data.tenants?.length, 
+    payments: data.payments?.length,
+    logs: data.logs?.length 
+  });
   try {
-    await fetch(GAS_URL, {
+    const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify(data),
     });
+    if (response.ok) {
+      console.log('Data successfully saved to GAS');
+    } else {
+      console.error('GAS Save Error:', response.statusText);
+    }
   } catch (error) {
     console.error('Error saving data to GAS:', error);
   }
