@@ -2,7 +2,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { loadData, saveData, uploadFileToGAS } from './services/storageService';
+import { 
+  loadData, 
+  saveData, 
+  appendData, 
+  appendMultiple,
+  updateData, 
+  deleteData, 
+  saveTable,
+  uploadFileToGAS 
+} from './services/storageService';
 import { AppData, RentalUnit, Tenant, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction, AppLog } from './types';
 import StatCard from './components/StatCard';
 import UnitCard from './components/UnitCard';
@@ -215,6 +224,18 @@ const App: React.FC = () => {
             Ganti PIN
           </button>
 
+          {currentUser?.role === 'admin' && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); window.open('https://docs.google.com/spreadsheets/d/1UPTeM5rJKneWzc6dYmS1XUtuVq0MTrCFn3bw29E2mnI/edit?usp=drivesdk', '_blank'); setIsUserMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-sm font-medium"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              Google Sheet
+            </button>
+          )}
+
           <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
 
           <button 
@@ -256,6 +277,9 @@ const App: React.FC = () => {
       ...prev,
       logs: [newLog, ...(prev.logs || [])].slice(0, 1000)
     }));
+    
+    // Simpan log secara atomik ke Google Sheet
+    appendData('logs', newLog);
   }, [currentUser]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -301,12 +325,15 @@ const App: React.FC = () => {
           amount: Number(formData.get('amount')),
           date: formData.get('date') as string,
           description: formData.get('description') as string,
+          proofUrl: uploadedFileBase64 || editingWalletTransaction.proofUrl,
         };
         const newData = { 
           ...data, 
           walletTransactions: data.walletTransactions?.map(t => t.id === updatedTx.id ? updatedTx : t) || [] 
         };
-        setData(newData); saveData(newData); 
+        setData(newData); 
+        updateData('walletTransactions', updatedTx);
+        setUploadedFileBase64(null);
         setEditingWalletTransaction(null);
         setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil diperbarui');
@@ -319,10 +346,13 @@ const App: React.FC = () => {
           amount: Number(formData.get('amount')),
           date: formData.get('date') as string,
           description: formData.get('description') as string,
+          proofUrl: uploadedFileBase64 || undefined,
           createdAt: new Date().toISOString()
         };
         const newData = { ...data, walletTransactions: [...(data.walletTransactions || []), newTx] };
         setData(newData); 
+        appendData('walletTransactions', newTx);
+        setUploadedFileBase64(null);
         setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil dicatat');
         logAction('CREATE', 'Wallet', `Tambah transaksi ${newTx.wallet}: ${newTx.description}`);
@@ -334,7 +364,8 @@ const App: React.FC = () => {
     openConfirmModal('Hapus transaksi dompet ini?', () => {
       withLoading(() => {
         const newData = { ...data, walletTransactions: data.walletTransactions?.filter(t => t.id !== id) || [] };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        deleteData('walletTransactions', id);
         showToast('Transaksi dompet berhasil dihapus');
         logAction('DELETE', 'Wallet', `Hapus transaksi dompet`);
       });
@@ -590,17 +621,6 @@ const App: React.FC = () => {
 
   const isInitialLoadDone = useRef(false);
 
-  // Auto-save data to GAS when it changes (with debounce)
-  useEffect(() => {
-    if (!isInitialLoadDone.current) return;
-
-    const timer = setTimeout(() => {
-      saveData(data);
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(timer);
-  }, [data]);
-
   const currentMonthDate = new Date();
   const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1).getDay();
@@ -686,7 +706,9 @@ const App: React.FC = () => {
         cash: cashAmount,
         saving: savingAmount,
         zakat: zakatAmount,
-        dividends: dividends
+        dividends: dividends,
+        isManualCash: manualCashAmount !== null,
+        isManualSaving: manualSavingAmount !== null
       },
       closedAt: new Date().toISOString(),
       closedBy: currentUser?.username || 'Unknown',
@@ -723,6 +745,14 @@ const App: React.FC = () => {
     };
     
     setData(updatedData);
+    
+    // Atomic persistence
+    appendData('bookClosings', newClosing);
+    saveTable('tenants', updatedTenants);
+    saveTable('payments', remainingPayments);
+    saveTable('expenses', remainingExpenses);
+    saveTable('otherIncomes', remainingOtherIncomes);
+
     setIsConfirmCloseBookModalOpen(false);
     showToast('Tutup buku berhasil! Transaksi periode ini telah di-reset');
     logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear}`);
@@ -759,7 +789,14 @@ const App: React.FC = () => {
         };
         
         setData(newData);
-        saveData(newData);
+        deleteData('bookClosings', id);
+        // Update tenants whose accumulatedPaidRent was restored
+        saveTable('tenants', updatedTenants);
+        // Restore payments, expenses, and other incomes
+        if (restoredPayments.length > 0) appendMultiple('payments', restoredPayments);
+        if (restoredExpenses.length > 0) appendMultiple('expenses', restoredExpenses);
+        if (restoredOtherIncomes.length > 0) appendMultiple('otherIncomes', restoredOtherIncomes);
+        
         showToast('Riwayat tutup buku berhasil dihapus dan transaksi dikembalikan');
         logAction('OTHER', 'System', `Hapus riwayat tutup buku periode ${monthNames[closingToDelete.periodMonth]} ${closingToDelete.periodYear}`);
       });
@@ -795,7 +832,7 @@ const App: React.FC = () => {
           settings: { cashPercentage, savingPercentage }
         };
         setData(updatedData);
-        saveData(updatedData);
+        saveTable('dividendRecipients', updatedRecipients);
         showToast('Penerima dividen berhasil ditambahkan');
         logAction('CREATE', 'Recipient', `Tambah penerima dividen ${newRecipientName} (${newRecipientPercentage}%)`);
       });
@@ -814,7 +851,7 @@ const App: React.FC = () => {
             settings: { cashPercentage, savingPercentage }
           };
           setData(updatedData);
-          saveData(updatedData);
+          saveTable('dividendRecipients', updatedRecipients);
           showToast('Penerima dividen berhasil dihapus');
           logAction('DELETE', 'Recipient', `Hapus penerima dividen`);
       });
@@ -829,7 +866,7 @@ const App: React.FC = () => {
         settings: { cashPercentage, savingPercentage }
       };
       setData(updatedData);
-      saveData(updatedData);
+      saveTable('settings', { cashPercentage, savingPercentage });
       showToast('Pengaturan berhasil disimpan');
       logAction('UPDATE', 'Settings', 'Update pengaturan alokasi laba');
     });
@@ -1080,7 +1117,9 @@ const App: React.FC = () => {
 
     // Ringkasan
     doc.setFontSize(14);
+    doc.setTextColor(79, 70, 229); // Indigo-600
     doc.text("RINGKASAN KEUANGAN", 14, 48);
+    doc.setTextColor(0, 0, 0);
     
     autoTable(doc, {
       startY: 52,
@@ -1088,10 +1127,13 @@ const App: React.FC = () => {
       body: [
         ['Total Pemasukan', `Rp ${closing.totalIncome.toLocaleString('id-ID')}`],
         ['Total Pengeluaran', `Rp ${closing.totalExpense.toLocaleString('id-ID')}`],
-        ['Laba Bersih', `Rp ${closing.netIncome.toLocaleString('id-ID')}`]
+        [{ content: 'LABA BERSIH', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, { content: `Rp ${closing.netIncome.toLocaleString('id-ID')}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } }]
       ],
       theme: 'grid',
-      headStyles: { fillColor: [79, 70, 229] }
+      headStyles: { fillColor: [79, 70, 229], halign: 'center' },
+      columnStyles: {
+        1: { halign: 'right' }
+      }
     });
 
     let finalY = (doc as any).lastAutoTable.finalY + 10;
@@ -1099,44 +1141,80 @@ const App: React.FC = () => {
     // Alokasi
     if (closing.allocation) {
       doc.setFontSize(14);
+      doc.setTextColor(16, 185, 129); // Emerald-600
       doc.text("ALOKASI LABA", 14, finalY);
+      doc.setTextColor(0, 0, 0);
       
-      const allocationRows = [
-        ['Zakat (2.5%)', `Rp ${closing.allocation.zakat.toLocaleString('id-ID')}`],
-        ['Kas', `Rp ${closing.allocation.cash.toLocaleString('id-ID')}`],
-        ['Tabungan', `Rp ${closing.allocation.saving.toLocaleString('id-ID')}`]
-      ];
-
       let totalDividen = 0;
       if (closing.allocation.dividends && closing.allocation.dividends.length > 0) {
         totalDividen = closing.allocation.dividends.reduce((acc, d) => acc + d.amount, 0);
-        allocationRows.push(['Total Dividen', `Rp ${totalDividen.toLocaleString('id-ID')}`]);
       }
+
+      const totalAllocated = closing.allocation.zakat + closing.allocation.cash + closing.allocation.saving + totalDividen;
+      
+      const getPercentage = (amount: number) => {
+        if (totalAllocated === 0) return '0%';
+        return `${((amount / totalAllocated) * 100).toFixed(1)}%`;
+      };
+
+      const allocationRows: any[] = [
+        ['Zakat', '2.5%', `Rp ${closing.allocation.zakat.toLocaleString('id-ID')}`],
+        [`Kas ${closing.allocation.isManualCash ? '(Manual)' : ''}`, getPercentage(closing.allocation.cash), `Rp ${closing.allocation.cash.toLocaleString('id-ID')}`],
+        [`Tabungan ${closing.allocation.isManualSaving ? '(Manual)' : ''}`, getPercentage(closing.allocation.saving), `Rp ${closing.allocation.saving.toLocaleString('id-ID')}`],
+        ['Total Dividen', getPercentage(totalDividen), `Rp ${totalDividen.toLocaleString('id-ID')}`]
+      ];
+
+      allocationRows.push([
+        { content: 'TOTAL ALOKASI', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: '100%', styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
+        { content: `Rp ${totalAllocated.toLocaleString('id-ID')}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } }
+      ]);
 
       autoTable(doc, {
         startY: finalY + 4,
-        head: [['Kategori', 'Jumlah']],
+        head: [['Kategori', 'Persentase', 'Jumlah']],
         body: allocationRows,
         theme: 'grid',
-        headStyles: { fillColor: [16, 185, 129] }
+        headStyles: { fillColor: [16, 185, 129], halign: 'center' },
+        columnStyles: {
+          1: { halign: 'center' },
+          2: { halign: 'right' }
+        }
       });
 
       finalY = (doc as any).lastAutoTable.finalY + 10;
 
       if (closing.allocation.dividends && closing.allocation.dividends.length > 0) {
         doc.setFontSize(12);
+        doc.setTextColor(59, 130, 246); // Blue-500
         doc.text("Rincian Dividen:", 14, finalY);
+        doc.setTextColor(0, 0, 0); // Reset to black
         
-        const dividendRows = closing.allocation.dividends.map(d => [
+        const totalDiv = closing.allocation.dividends.reduce((acc, d) => acc + d.amount, 0);
+        const dividendRows: any[] = closing.allocation.dividends.map(d => [
           d.recipientName,
+          `${((d.amount / totalDiv) * 100).toFixed(0)}%`,
           `Rp ${d.amount.toLocaleString('id-ID')}`
+        ]);
+
+        // Add total row for dividends
+        dividendRows.push([
+          { content: 'TOTAL DIVIDEN', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+          { content: '100%', styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
+          { content: `Rp ${totalDiv.toLocaleString('id-ID')}`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } }
         ]);
 
         autoTable(doc, {
           startY: finalY + 4,
-          head: [['Penerima', 'Jumlah']],
+          head: [['Penerima', 'Porsi', 'Jumlah']],
           body: dividendRows,
-          theme: 'plain'
+          theme: 'grid',
+          headStyles: { fillColor: [59, 130, 246], halign: 'center' },
+          columnStyles: {
+            1: { halign: 'center' },
+            2: { halign: 'right' }
+          },
+          styles: { fontSize: 10 }
         });
         finalY = (doc as any).lastAutoTable.finalY + 10;
       }
@@ -1282,7 +1360,8 @@ const App: React.FC = () => {
     openConfirmModal('Hapus unit ini?', () => {
       withLoading(() => {
         const newData = { ...data, units: data.units.filter(u => u.id !== unitId) };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        deleteData('units', unitId);
         showToast('Unit berhasil dihapus');
         logAction('DELETE', 'Unit', 'Hapus unit');
       });
@@ -1308,6 +1387,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, units: data.units.map(u => u.id === selectedUnit.id ? updatedUnit : u) };
       setData(newData); 
+      updateData('units', updatedUnit);
       setIsEditUnitModalOpen(false);
       showToast('Data unit berhasil diperbarui');
       logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name}`);
@@ -1333,6 +1413,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, units: [...data.units, newUnit] };
       setData(newData); 
+      appendData('units', newUnit);
       setIsAddUnitModalOpen(false);
       showToast('Unit baru berhasil ditambahkan');
       logAction('CREATE', 'Unit', `Tambah unit ${newUnit.name}`);
@@ -1365,7 +1446,8 @@ const App: React.FC = () => {
         units: data.units.map(u => u.id === selectedUnit.id ? { ...u, status: UnitStatus.OCCUPIED } : u)
       };
       setData(newData); 
-      saveData(newData);
+      appendData('tenants', newTenant);
+      updateData('units', { ...selectedUnit, status: UnitStatus.OCCUPIED });
       setIsAddTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Penyewa berhasil ditambahkan');
       logAction('CREATE', 'Tenant', `Tambah penyewa ${newTenant.name} di unit ${selectedUnit.name}`);
@@ -1398,7 +1480,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, tenants: data.tenants.map(t => t.id === selectedTenant.id ? updatedTenant : t) };
       setData(newData); 
-      saveData(newData);
+      updateData('tenants', updatedTenant);
       setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
       logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name}`);
@@ -1421,7 +1503,9 @@ const App: React.FC = () => {
           tenants: data.tenants.filter(t => t.id !== tenantId),
           units: data.units.map(u => u.id === tenant.unitId ? { ...u, status: UnitStatus.VACANT } : u)
         };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        deleteData('tenants', tenantId);
+        updateData('units', { ...unit, status: UnitStatus.VACANT });
         showToast('Penyewa berhasil dikeluarkan');
         logAction('DELETE', 'Tenant', `Hapus penyewa ${tenant.name}`);
       });
@@ -1447,6 +1531,7 @@ const App: React.FC = () => {
       if (data.areas.includes(newAreaName)) { showToast('Wilayah sudah ada!', 'error'); return; }
       const newData = { ...data, areas: [...data.areas, newAreaName] };
       setData(newData); 
+      saveTable('areas', newData.areas);
       setIsAddAreaModalOpen(false);
       showToast('Wilayah berhasil ditambahkan');
       logAction('CREATE', 'Area', `Tambah wilayah ${newAreaName}`);
@@ -1475,6 +1560,8 @@ const App: React.FC = () => {
         units: data.units.map(u => u.area === selectedArea ? { ...u, area: newName } : u)
       };
       setData(newData); 
+      saveTable('areas', newData.areas);
+      saveTable('units', newData.units);
       setIsEditAreaModalOpen(false);
       showToast('Nama wilayah berhasil diperbarui');
       logAction('UPDATE', 'Area', `Update wilayah ${selectedArea} menjadi ${newName}`);
@@ -1494,7 +1581,9 @@ const App: React.FC = () => {
           areas: data.areas.filter(a => a !== area),
           units: data.units.map(u => u.area === area ? { ...u, area: '' } : u)
         };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        saveTable('areas', newData.areas);
+        saveTable('units', newData.units);
         showToast('Wilayah berhasil dihapus');
         logAction('DELETE', 'Area', `Hapus wilayah ${area}`);
       });
@@ -1535,7 +1624,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, payments: [...data.payments, newPayment] };
       setData(newData); 
-      saveData(newData);
+      appendData('payments', newPayment);
       setIsPaymentModalOpen(false); setUploadedFileBase64(null);
       showToast('Pembayaran berhasil ditambahkan');
       logAction('CREATE', 'Payment', `Tambah pembayaran Rp ${newPayment.amount.toLocaleString('id-ID')} untuk ${newPayment.periodCovered}`);
@@ -1577,7 +1666,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, payments: data.payments.map(p => p.id === selectedPayment.id ? updatedPayment : p) };
       setData(newData); 
-      saveData(newData);
+      updateData('payments', updatedPayment);
       setIsEditPaymentModalOpen(false); setSelectedPayment(null); setUploadedFileBase64(null);
       showToast('Data pembayaran berhasil diperbarui');
       logAction('UPDATE', 'Payment', `Update pembayaran Rp ${updatedPayment.amount.toLocaleString('id-ID')}`);
@@ -1596,7 +1685,8 @@ const App: React.FC = () => {
     openConfirmModal('Hapus riwayat pembayaran ini?', () => {
       withLoading(() => {
         const newData = { ...data, payments: data.payments.filter(p => p.id !== paymentId) };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        deleteData('payments', paymentId);
         showToast('Pembayaran berhasil dihapus');
         logAction('DELETE', 'Payment', `Hapus pembayaran`);
       });
@@ -1637,7 +1727,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, expenses: [...data.expenses, newExpense] };
       setData(newData); 
-      saveData(newData);
+      appendData('expenses', newExpense);
       setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
       showToast('Pengeluaran berhasil ditambahkan');
       logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.description}: Rp ${newExpense.amount.toLocaleString('id-ID')}`);
@@ -1685,7 +1775,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, expenses: data.expenses.map(ex => ex.id === selectedExpense.id ? updatedExpense : ex) };
       setData(newData); 
-      saveData(newData);
+      updateData('expenses', updatedExpense);
       setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
       logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.description}`);
@@ -1703,7 +1793,8 @@ const App: React.FC = () => {
     openConfirmModal('Hapus pengeluaran ini?', () => {
       withLoading(() => {
         const newData = { ...data, expenses: data.expenses.filter(ex => ex.id !== expenseId) };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        deleteData('expenses', expenseId);
         showToast('Pengeluaran berhasil dihapus');
         logAction('DELETE', 'Expense', `Hapus pengeluaran`);
       });
@@ -1743,6 +1834,7 @@ const App: React.FC = () => {
         otherIncomes: (data.otherIncomes || []).map(i => i.id === selectedOtherIncome.id ? updatedIncome : i) 
       };
       setData(newData); 
+      updateData('otherIncomes', updatedIncome);
       setIsEditOtherIncomeModalOpen(false); setSelectedOtherIncome(null);
       showToast('Data pemasukan lain berhasil diperbarui');
       logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.description}`);
@@ -1756,7 +1848,8 @@ const App: React.FC = () => {
           ...data, 
           otherIncomes: (data.otherIncomes || []).filter(i => i.id !== incomeId) 
         };
-        setData(newData); saveData(newData);
+        setData(newData); 
+        deleteData('otherIncomes', incomeId);
         showToast('Pemasukan lain berhasil dihapus');
         logAction('DELETE', 'OtherIncome', `Hapus pemasukan lain`);
       });
@@ -1771,6 +1864,7 @@ const App: React.FC = () => {
       if (newCategory && !data.expenseCategories.includes(newCategory)) {
         const newData = { ...data, expenseCategories: [...data.expenseCategories, newCategory] };
         setData(newData); 
+        saveTable('expenseCategories', newData.expenseCategories);
         setIsAddCategoryModalOpen(false);
         showToast('Kategori berhasil ditambahkan');
         logAction('CREATE', 'Category', `Tambah kategori pengeluaran ${newCategory}`);
@@ -1794,6 +1888,7 @@ const App: React.FC = () => {
         const newUser: User = { username, pin, role };
         const newData = { ...data, users: [...data.users, newUser] };
         setData(newData); 
+        appendData('users', newUser);
         setIsAddUserModalOpen(false);
         showToast('User berhasil ditambahkan');
         logAction('CREATE', 'User', `Tambah user ${username} dengan role ${role}`);
@@ -1826,7 +1921,7 @@ const App: React.FC = () => {
       );
       const newData = { ...data, users: updatedUsers };
       setData(newData); 
-      saveData(newData); 
+      updateData('users', updatedUsers.find(u => u.username === currentUser.username), 'username');
       setCurrentUser({ ...currentUser, pin: newPin });
       setIsChangePinModalOpen(false);
       showToast('PIN berhasil diubah');
@@ -1842,7 +1937,7 @@ const App: React.FC = () => {
         );
         const newData = { ...data, users: updatedUsers };
         setData(newData); 
-        saveData(newData);
+        updateData('users', updatedUsers.find(u => u.username === username), 'username');
         showToast(`PIN ${username} berhasil direset ke 1234`);
         logAction('UPDATE', 'User', `Reset PIN untuk user ${username}`);
       });
@@ -1901,7 +1996,8 @@ const App: React.FC = () => {
         isManual: true,
         manualTxId: tx.id,
         walletType: tx.wallet,
-        txType: tx.type
+        txType: tx.type,
+        proofUrl: tx.proofUrl
       });
     });
 
@@ -2462,7 +2558,6 @@ const App: React.FC = () => {
                           <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Pendapatan</th>
                           <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Pengeluaran</th>
                           <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400 text-right">Laba Bersih</th>
-                          <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Alokasi</th>
                           <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Tanggal</th>
                           <th className="px-6 py-4 font-semibold text-slate-600 dark:text-slate-400">Aksi</th>
                         </tr>
@@ -2475,26 +2570,18 @@ const App: React.FC = () => {
                               <td className="px-6 py-4 text-right text-indigo-600 dark:text-indigo-400 font-medium">Rp {closing.totalIncome.toLocaleString('id-ID')}</td>
                               <td className="px-6 py-4 text-right text-rose-600 dark:text-rose-400 font-medium">Rp {closing.totalExpense.toLocaleString('id-ID')}</td>
                               <td className="px-6 py-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">Rp {closing.netIncome.toLocaleString('id-ID')}</td>
-                              <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
-                                {closing.allocation ? (
-                                  <div className="space-y-1">
-                                    <div className="flex justify-between gap-4"><span>Zakat:</span> <span>{closing.allocation.zakat.toLocaleString('id-ID')}</span></div>
-                                    <div className="flex justify-between gap-4"><span>Kas:</span> <span>{closing.allocation.cash.toLocaleString('id-ID')}</span></div>
-                                    <div className="flex justify-between gap-4"><span>Saving:</span> <span>{closing.allocation.saving.toLocaleString('id-ID')}</span></div>
-                                    <button 
-                                      onClick={() => {
-                                        setSelectedBookClosing(closing);
-                                        setIsClosingDetailModalOpen(true);
-                                      }}
-                                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium mt-1 underline"
-                                    >
-                                      Lihat Detail
-                                    </button>
-                                  </div>
-                                ) : '-'}
-                              </td>
                               <td className="px-6 py-4 text-slate-400 dark:text-slate-500 text-xs">{formatDateTime(closing.closedAt)}</td>
                               <td className="px-6 py-4 flex items-center gap-2">
+                                <button 
+                                  onClick={() => {
+                                    setSelectedBookClosing(closing);
+                                    setIsClosingDetailModalOpen(true);
+                                  }}
+                                  className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                  title="Lihat Detail"
+                                >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                </button>
                                 <button 
                                   onClick={() => exportBookClosingPDF(closing)}
                                   className="text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
@@ -2516,7 +2603,7 @@ const App: React.FC = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={7} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat tutup buku</td>
+                            <td colSpan={6} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat tutup buku</td>
                           </tr>
                         )}
                       </tbody>
@@ -2656,6 +2743,7 @@ const App: React.FC = () => {
                         <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Zakat</th>
                         <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Kas</th>
                         <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-right">Saving</th>
+                        <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-center">Bukti</th>
                         {isAccountingEditor && <th className="px-6 py-4 font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] text-center">Aksi</th>}
                       </tr>
                     </thead>
@@ -2685,6 +2773,22 @@ const App: React.FC = () => {
                             <td className={`px-6 py-4 text-right font-medium ${tx.saving > 0 ? 'text-blue-600 dark:text-blue-400' : tx.saving < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-600'}`}>
                               {tx.saving > 0 ? '+' : ''}{tx.saving === 0 ? '-' : `Rp ${tx.saving.toLocaleString('id-ID')}`}
                             </td>
+                            <td className="px-6 py-4 text-center">
+                              {tx.proofUrl ? (
+                                <button 
+                                  onClick={() => window.open(getDirectDriveLink(tx.proofUrl), '_blank')}
+                                  className="text-indigo-500 hover:text-indigo-700 transition-colors p-1"
+                                  title="Lihat Bukti"
+                                >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                              ) : (
+                                <span className="text-slate-300 dark:text-slate-600">-</span>
+                              )}
+                            </td>
                             {isAccountingEditor && (
                               <td className="px-6 py-4 text-center">
                                 {tx.isManual ? (
@@ -2712,7 +2816,7 @@ const App: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={isAccountingEditor ? 6 : 5} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat transaksi.</td>
+                          <td colSpan={isAccountingEditor ? 7 : 6} className="px-6 py-8 text-center text-slate-400 dark:text-slate-600 italic">Belum ada riwayat transaksi.</td>
                         </tr>
                       )}
                     </tbody>
@@ -2947,97 +3051,202 @@ const App: React.FC = () => {
         {isClosingDetailModalOpen && selectedBookClosing && selectedBookClosing.allocation && (
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Riwayat Tutup Buku</h3>
                   <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
-                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 transition-colors">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Periode</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Laba Bersih</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Rincian Alokasi</h4>
-                  
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">Zakat (2.5%)</span>
-                      </div>
-                      <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                <div className="p-6 space-y-8 max-h-[80vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 transition-colors border border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Periode</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">Kas</span>
-                      </div>
-                      <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Laba Bersih</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">Saving</span>
-                      </div>
-                      <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 transition-colors border border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Total Pemasukan</span>
+                      <span className="font-semibold text-indigo-600 dark:text-indigo-400">Rp {selectedBookClosing.totalIncome.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Total Pengeluaran</span>
+                      <span className="font-semibold text-rose-600 dark:text-rose-400">Rp {selectedBookClosing.totalExpense.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Pembagian Dividen</h4>
-                  {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Rincian Alokasi
+                    </h4>
+                    
                     <div className="space-y-3">
-                      {selectedBookClosing.allocation.dividends.map((div, idx) => (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
-                              {div.recipientName.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="font-medium text-slate-700 dark:text-slate-300">{div.recipientName}</span>
-                          </div>
-                          <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {div.amount.toLocaleString('id-ID')}</span>
-                        </div>
-                      ))}
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                        <span className="font-bold text-slate-600 dark:text-slate-400">Total Dividen</span>
-                        <span className="font-bold text-purple-600 dark:text-purple-400">
-                          Rp {selectedBookClosing.allocation.dividends.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}
-                        </span>
+                      <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                        <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">Zakat (2.5%)</span>
+                        <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                        <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">Kas {selectedBookClosing.allocation.isManualCash ? '(Manual)' : ''}</span>
+                        <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                        <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">Saving {selectedBookClosing.allocation.isManualSaving ? '(Manual)' : ''}</span>
+                        <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-slate-400 dark:text-slate-500 italic text-center py-4">Tidak ada pembagian dividen</p>
-                  )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      Pembagian Dividen
+                    </h4>
+                    {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedBookClosing.allocation.dividends.map((div, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                            <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{div.recipientName}</span>
+                            <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {div.amount.toLocaleString('id-ID')}</span>
+                          </div>
+                        ))}
+                        <div className="pt-2 flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-500 uppercase">Total Dividen</span>
+                          <span className="font-bold text-purple-600 dark:text-purple-400 text-sm">
+                            Rp {selectedBookClosing.allocation.dividends.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 dark:text-slate-500 italic text-center py-4 text-sm">Tidak ada pembagian dividen</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Rincian Pemasukan
+                    </h4>
+                    <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          <tr>
+                            <th className="px-4 py-2 font-semibold">Tanggal</th>
+                            <th className="px-4 py-2 font-semibold">Keterangan</th>
+                            <th className="px-4 py-2 font-semibold">Kategori</th>
+                            <th className="px-4 py-2 font-semibold text-right">Jumlah</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {selectedBookClosing.archivedPayments?.map(p => (
+                            <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <td className="px-4 py-2 text-slate-500">{new Date(p.date).toLocaleDateString('id-ID')}</td>
+                              <td className="px-4 py-2 text-slate-700 dark:text-slate-300">Sewa {data.units.find(u => u.id === p.unitId)?.name || 'Unit'} - {data.tenants.find(t => t.id === p.tenantId)?.name || 'Penyewa'}</td>
+                              <td className="px-4 py-2 text-slate-500">Sewa</td>
+                              <td className="px-4 py-2 text-right font-medium text-indigo-600 dark:text-indigo-400">Rp {p.amount.toLocaleString('id-ID')}</td>
+                            </tr>
+                          ))}
+                          {selectedBookClosing.archivedOtherIncomes?.map(i => (
+                            <tr key={i.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <td className="px-4 py-2 text-slate-500">{new Date(i.date).toLocaleDateString('id-ID')}</td>
+                              <td className="px-4 py-2 text-slate-700 dark:text-slate-300">{i.description}</td>
+                              <td className="px-4 py-2 text-slate-500">{i.category}</td>
+                              <td className="px-4 py-2 text-right font-medium text-indigo-600 dark:text-indigo-400">Rp {i.amount.toLocaleString('id-ID')}</td>
+                            </tr>
+                          ))}
+                          {(!selectedBookClosing.archivedPayments?.length && !selectedBookClosing.archivedOtherIncomes?.length) ? (
+                            <tr><td colSpan={4} className="px-4 py-4 text-center text-slate-400 italic">Tidak ada data pemasukan</td></tr>
+                          ) : (
+                            <tr className="bg-slate-50/50 dark:bg-slate-800/30 font-bold">
+                              <td colSpan={3} className="px-4 py-2 text-right text-slate-600 dark:text-slate-400">Total Pemasukan</td>
+                              <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-400">Rp {selectedBookClosing.totalIncome.toLocaleString('id-ID')}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Rincian Pengeluaran
+                    </h4>
+                    <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          <tr>
+                            <th className="px-4 py-2 font-semibold">Tanggal</th>
+                            <th className="px-4 py-2 font-semibold">Keterangan</th>
+                            <th className="px-4 py-2 font-semibold">Kategori</th>
+                            <th className="px-4 py-2 font-semibold text-right">Jumlah</th>
+                            <th className="px-4 py-2 font-semibold text-center">Bukti</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {selectedBookClosing.archivedExpenses?.map(e => (
+                            <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <td className="px-4 py-2 text-slate-500">{new Date(e.date).toLocaleDateString('id-ID')}</td>
+                              <td className="px-4 py-2 text-slate-700 dark:text-slate-300">{e.description}</td>
+                              <td className="px-4 py-2 text-slate-500">{e.category}</td>
+                              <td className="px-4 py-2 text-right font-medium text-rose-600 dark:text-rose-400">Rp {e.amount.toLocaleString('id-ID')}</td>
+                              <td className="px-4 py-2 text-center">
+                                {e.proofUrl ? (
+                                  <button 
+                                    onClick={() => {
+                                      const directUrl = getDirectDriveLink(e.proofUrl!);
+                                      window.open(directUrl, '_blank');
+                                    }}
+                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                    title="Lihat Bukti"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                  </button>
+                                ) : (
+                                  <span className="text-slate-300 dark:text-slate-700">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                          {!selectedBookClosing.archivedExpenses?.length ? (
+                            <tr><td colSpan={5} className="px-4 py-4 text-center text-slate-400 italic">Tidak ada data pengeluaran</td></tr>
+                          ) : (
+                            <tr className="bg-slate-50/50 dark:bg-slate-800/30 font-bold">
+                              <td colSpan={3} className="px-4 py-2 text-right text-slate-600 dark:text-slate-400">Total Pengeluaran</td>
+                              <td className="px-4 py-2 text-right text-rose-600 dark:text-rose-400">Rp {selectedBookClosing.totalExpense.toLocaleString('id-ID')}</td>
+                              <td></td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                </div>
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end transition-colors">
+                  <button 
+                    onClick={() => setIsClosingDetailModalOpen(false)}
+                    className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    Tutup
+                  </button>
                 </div>
               </div>
-              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end transition-colors">
-                <button 
-                  onClick={() => setIsClosingDetailModalOpen(false)}
-                  className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                >
-                  Tutup
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -3075,7 +3284,7 @@ const App: React.FC = () => {
                   
                   const updatedData = { ...data, otherIncomes: [...(data.otherIncomes || []), newIncome] };
                   setData(updatedData);
-                  saveData(updatedData);
+                  appendData('otherIncomes', newIncome);
                   setIsAddOtherIncomeModalOpen(false);
                   showToast('Pemasukan lain berhasil dicatat');
                   logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.description}: Rp ${newIncome.amount.toLocaleString('id-ID')}`);
@@ -3435,7 +3644,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
-            <button onClick={() => { setIsWalletTransactionModalOpen(false); setEditingWalletTransaction(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onClick={() => { setIsWalletTransactionModalOpen(false); setEditingWalletTransaction(null); setUploadedFileBase64(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             <h3 className="text-lg font-bold text-slate-800 dark:text-white">{editingWalletTransaction ? 'Edit' : 'Catat'} Transaksi Dompet {selectedWalletForTransaction.toUpperCase()}</h3>
             <form onSubmit={handleSaveWalletTransaction} className="space-y-4">
               <div>
@@ -3467,6 +3676,35 @@ const App: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal</label>
                 <input type="date" name="date" defaultValue={editingWalletTransaction ? getLocalDateString(editingWalletTransaction.date) : getLocalDateString()} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Bukti Pembayaran (Opsional)</label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="wallet-proof-upload" disabled={isUploading} />
+                    <label htmlFor="wallet-proof-upload" className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all cursor-pointer group">
+                      <svg className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <span className="text-sm text-slate-500 group-hover:text-indigo-600 font-medium">{isUploading ? 'Mengunggah...' : 'Pilih Foto Bukti'}</span>
+                    </label>
+                  </div>
+                  {(uploadedFileBase64 || editingWalletTransaction?.proofUrl) && (
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                      <img src={getDirectDriveLink(uploadedFileBase64 || editingWalletTransaction?.proofUrl || '')} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const directUrl = getDirectDriveLink(uploadedFileBase64 || editingWalletTransaction?.proofUrl || '');
+                          window.open(directUrl, '_blank');
+                        }}
+                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                      >
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="pt-2">
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan Transaksi</button>
               </div>
@@ -3704,6 +3942,15 @@ const App: React.FC = () => {
           <NavItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} label="Transaksi" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
           <NavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} label="Laporan" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
           <NavItem active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} label="Riwayat" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+          {currentUser?.role === 'admin' && (
+            <NavItem 
+              active={false} 
+              onClick={() => window.open('https://docs.google.com/spreadsheets/d/1UPTeM5rJKneWzc6dYmS1XUtuVq0MTrCFn3bw29E2mnI/edit?usp=drivesdk', '_blank')} 
+              label="Google Sheet" 
+              icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} 
+              color="emerald"
+            />
+          )}
         </nav>
         <div className="p-4 border-t border-slate-50 dark:border-slate-800 relative">
           {/* User Menu Popover */}
@@ -3745,6 +3992,18 @@ const App: React.FC = () => {
                   </div>
                   Ganti PIN
                 </button>
+
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); window.open('https://docs.google.com/spreadsheets/d/1UPTeM5rJKneWzc6dYmS1XUtuVq0MTrCFn3bw29E2mnI/edit?usp=drivesdk', '_blank'); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </div>
+                    Google Sheet
+                  </button>
+                )}
 
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
 
@@ -4440,7 +4699,8 @@ const App: React.FC = () => {
                   <button 
                     onClick={() => openConfirmModal('Bersihkan semua riwayat aktivitas?', () => {
                       const newData = { ...data, logs: [] };
-                      setData(newData); saveData(newData);
+                      setData(newData); 
+                      saveTable('logs', []);
                       showToast('Riwayat aktivitas berhasil dibersihkan');
                       logAction('DELETE', 'Log', 'Bersihkan riwayat aktivitas');
                     })}
@@ -4706,6 +4966,18 @@ const App: React.FC = () => {
                   Ganti PIN
                 </button>
 
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); window.open('https://docs.google.com/spreadsheets/d/1UPTeM5rJKneWzc6dYmS1XUtuVq0MTrCFn3bw29E2mnI/edit?usp=drivesdk', '_blank'); setIsUserMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-sm font-medium"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </div>
+                    Google Sheet
+                  </button>
+                )}
+
                 <button 
                   onClick={(e) => { e.stopPropagation(); setActiveTab('logs'); setIsUserMenuOpen(false); }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${activeTab === 'logs' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
@@ -4743,6 +5015,7 @@ const App: React.FC = () => {
             { id: 'tenants', label: 'Penyewa', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> },
             { id: 'transactions', label: 'Transaksi', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg> },
             { id: 'reports', label: 'Laporan', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+            ...(currentUser?.role === 'admin' ? [{ id: 'sheets', label: 'Sheet', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> }] : []),
             { id: 'more', label: 'Lainnya', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg> }
           ].map(tab => (
             <button 
@@ -4751,15 +5024,18 @@ const App: React.FC = () => {
                 e.stopPropagation();
                 if (tab.id === 'more') {
                   setIsUserMenuOpen(!isUserMenuOpen);
+                } else if (tab.id === 'sheets') {
+                  window.open('https://docs.google.com/spreadsheets/d/1UPTeM5rJKneWzc6dYmS1XUtuVq0MTrCFn3bw29E2mnI/edit?usp=drivesdk', '_blank');
+                  setIsUserMenuOpen(false);
                 } else {
                   setActiveTab(tab.id as any);
                   setIsUserMenuOpen(false);
                 }
               }} 
               className={`flex flex-col landscape:flex-row items-center gap-1 landscape:gap-2 p-2 landscape:p-1 rounded-xl transition-colors ${
-                (tab.id === 'more' && isUserMenuOpen) || (activeTab === tab.id && tab.id !== 'more') 
+                (tab.id === 'more' && isUserMenuOpen) || (activeTab === tab.id && tab.id !== 'more' && tab.id !== 'sheets') 
                   ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' 
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               {tab.icon}
@@ -5125,7 +5401,7 @@ const App: React.FC = () => {
                 
                 const updatedData = { ...data, otherIncomes: [...(data.otherIncomes || []), newIncome] };
                 setData(updatedData);
-                saveData(updatedData);
+                appendData('otherIncomes', newIncome);
                 setIsAddOtherIncomeModalOpen(false);
                 showToast('Pemasukan lain berhasil dicatat');
                 logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.description}: Rp ${newIncome.amount.toLocaleString('id-ID')}`);
@@ -5581,7 +5857,8 @@ const App: React.FC = () => {
                                   const updatedUsers = [...data.users];
                                   updatedUsers[idx] = { ...user, allowedAreas: newAreas };
                                   const newData = { ...data, users: updatedUsers };
-                                  setData(newData); saveData(newData);
+                                  setData(newData); 
+                                  updateData('users', updatedUsers[idx], 'username');
                                   showToast(`Wilayah akses ${user.username} diperbarui`);
                                   logAction('UPDATE', 'User', `Update wilayah akses user ${user.username}`);
                                 });
@@ -5602,7 +5879,8 @@ const App: React.FC = () => {
                                     const updatedUsers = [...data.users];
                                     updatedUsers[idx] = { ...user, role: newRole };
                                     const newData = { ...data, users: updatedUsers };
-                                    setData(newData); saveData(newData);
+                                    setData(newData); 
+                                    updateData('users', updatedUsers[idx], 'username');
                                     showToast(`Role ${user.username} berhasil diubah`);
                                     logAction('UPDATE', 'User', `Ubah role user ${user.username} menjadi ${e.target.value}`);
                                   });
@@ -5625,7 +5903,8 @@ const App: React.FC = () => {
                                   withLoading(() => {
                                     const updatedUsers = data.users.filter((_, i) => i !== idx);
                                     const newData = { ...data, users: updatedUsers };
-                                    setData(newData); saveData(newData);
+                                    setData(newData); 
+                                    deleteData('users', user.username, 'username');
                                     showToast('User berhasil dihapus');
                                     logAction('DELETE', 'User', `Hapus user ${user.username}`);
                                   });
@@ -5652,97 +5931,202 @@ const App: React.FC = () => {
       {isClosingDetailModalOpen && selectedBookClosing && selectedBookClosing.allocation && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors duration-300">
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Alokasi Laba</h3>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Detail Riwayat Tutup Buku</h3>
                 <button onClick={() => setIsClosingDetailModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
-              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 border border-slate-100 dark:border-slate-800">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Periode</span>
-                  <span className="font-semibold text-slate-800 dark:text-white">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Laba Bersih</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Rincian Alokasi</h4>
-                
-                <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      </div>
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Zakat (2.5%)</span>
-                    </div>
-                    <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+              <div className="p-6 space-y-8 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Periode</span>
+                    <span className="font-semibold text-slate-800 dark:text-white">{monthNames[selectedBookClosing.periodMonth]} {selectedBookClosing.periodYear}</span>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                      </div>
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Kas</span>
-                    </div>
-                    <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Laba Bersih</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Rp {selectedBookClosing.netIncome.toLocaleString('id-ID')}</span>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      </div>
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Saving</span>
-                    </div>
-                    <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-2 border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Total Pemasukan</span>
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">Rp {selectedBookClosing.totalIncome.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Total Pengeluaran</span>
+                    <span className="font-semibold text-rose-600 dark:text-rose-400">Rp {selectedBookClosing.totalExpense.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Pembagian Dividen</h4>
-                {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Rincian Alokasi
+                  </h4>
+                  
                   <div className="space-y-3">
-                    {selectedBookClosing.allocation.dividends.map((div, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm gap-2 sm:gap-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
-                            {div.recipientName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="font-medium text-slate-700 dark:text-slate-300">{div.recipientName}</span>
-                        </div>
-                        <span className="font-bold text-slate-800 dark:text-white sm:text-right">Rp {div.amount.toLocaleString('id-ID')}</span>
-                      </div>
-                    ))}
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                      <span className="font-bold text-slate-600 dark:text-slate-400">Total Dividen</span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400">
-                        Rp {selectedBookClosing.allocation.dividends.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}
-                      </span>
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">Zakat (2.5%)</span>
+                      <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {selectedBookClosing.allocation.zakat.toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">Kas {selectedBookClosing.allocation.isManualCash ? '(Manual)' : ''}</span>
+                      <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {selectedBookClosing.allocation.cash.toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">Saving {selectedBookClosing.allocation.isManualSaving ? '(Manual)' : ''}</span>
+                      <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {selectedBookClosing.allocation.saving.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-slate-400 dark:text-slate-500 italic text-center py-4">Tidak ada pembagian dividen</p>
-                )}
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    Pembagian Dividen
+                  </h4>
+                  {selectedBookClosing.allocation.dividends && selectedBookClosing.allocation.dividends.length > 0 ? (
+                    <div className="space-y-3">
+                      {selectedBookClosing.allocation.dividends.map((div, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm">
+                          <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{div.recipientName}</span>
+                          <span className="font-bold text-slate-800 dark:text-white text-sm">Rp {div.amount.toLocaleString('id-ID')}</span>
+                        </div>
+                      ))}
+                      <div className="pt-2 flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Total Dividen</span>
+                        <span className="font-bold text-purple-600 dark:text-purple-400 text-sm">
+                          Rp {selectedBookClosing.allocation.dividends.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 dark:text-slate-500 italic text-center py-4 text-sm">Tidak ada pembagian dividen</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Rincian Pemasukan
+                  </h4>
+                  <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-xl">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <tr>
+                          <th className="px-4 py-2 font-semibold">Tanggal</th>
+                          <th className="px-4 py-2 font-semibold">Keterangan</th>
+                          <th className="px-4 py-2 font-semibold">Kategori</th>
+                          <th className="px-4 py-2 font-semibold text-right">Jumlah</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {selectedBookClosing.archivedPayments?.map(p => (
+                          <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="px-4 py-2 text-slate-500">{new Date(p.date).toLocaleDateString('id-ID')}</td>
+                            <td className="px-4 py-2 text-slate-700 dark:text-slate-300">Sewa {data.units.find(u => u.id === p.unitId)?.name || 'Unit'} - {data.tenants.find(t => t.id === p.tenantId)?.name || 'Penyewa'}</td>
+                            <td className="px-4 py-2 text-slate-500">Sewa</td>
+                            <td className="px-4 py-2 text-right font-medium text-indigo-600 dark:text-indigo-400">Rp {p.amount.toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                        {selectedBookClosing.archivedOtherIncomes?.map(i => (
+                          <tr key={i.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="px-4 py-2 text-slate-500">{new Date(i.date).toLocaleDateString('id-ID')}</td>
+                            <td className="px-4 py-2 text-slate-700 dark:text-slate-300">{i.description}</td>
+                            <td className="px-4 py-2 text-slate-500">{i.category}</td>
+                            <td className="px-4 py-2 text-right font-medium text-indigo-600 dark:text-indigo-400">Rp {i.amount.toLocaleString('id-ID')}</td>
+                          </tr>
+                        ))}
+                        {(!selectedBookClosing.archivedPayments?.length && !selectedBookClosing.archivedOtherIncomes?.length) ? (
+                          <tr><td colSpan={4} className="px-4 py-4 text-center text-slate-400 italic">Tidak ada data pemasukan</td></tr>
+                        ) : (
+                          <tr className="bg-slate-50/50 dark:bg-slate-800/30 font-bold">
+                            <td colSpan={3} className="px-4 py-2 text-right text-slate-600 dark:text-slate-400">Total Pemasukan</td>
+                            <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-400">Rp {selectedBookClosing.totalIncome.toLocaleString('id-ID')}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Rincian Pengeluaran
+                  </h4>
+                  <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-xl">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        <tr>
+                          <th className="px-4 py-2 font-semibold">Tanggal</th>
+                          <th className="px-4 py-2 font-semibold">Keterangan</th>
+                          <th className="px-4 py-2 font-semibold">Kategori</th>
+                          <th className="px-4 py-2 font-semibold text-right">Jumlah</th>
+                          <th className="px-4 py-2 font-semibold text-center">Bukti</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {selectedBookClosing.archivedExpenses?.map(e => (
+                          <tr key={e.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="px-4 py-2 text-slate-500">{new Date(e.date).toLocaleDateString('id-ID')}</td>
+                            <td className="px-4 py-2 text-slate-700 dark:text-slate-300">{e.description}</td>
+                            <td className="px-4 py-2 text-slate-500">{e.category}</td>
+                            <td className="px-4 py-2 text-right font-medium text-rose-600 dark:text-rose-400">Rp {e.amount.toLocaleString('id-ID')}</td>
+                            <td className="px-4 py-2 text-center">
+                              {e.proofUrl ? (
+                                <button 
+                                  onClick={() => {
+                                    const directUrl = getDirectDriveLink(e.proofUrl!);
+                                    window.open(directUrl, '_blank');
+                                  }}
+                                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                  title="Lihat Bukti"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                              ) : (
+                                <span className="text-slate-300 dark:text-slate-700">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {!selectedBookClosing.archivedExpenses?.length ? (
+                          <tr><td colSpan={5} className="px-4 py-4 text-center text-slate-400 italic">Tidak ada data pengeluaran</td></tr>
+                        ) : (
+                          <tr className="bg-slate-50/50 dark:bg-slate-800/30 font-bold">
+                            <td colSpan={3} className="px-4 py-2 text-right text-slate-600 dark:text-slate-400">Total Pengeluaran</td>
+                            <td className="px-4 py-2 text-right text-rose-600 dark:text-rose-400">Rp {selectedBookClosing.totalExpense.toLocaleString('id-ID')}</td>
+                            <td></td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              </div>
+              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+                <button 
+                  onClick={() => setIsClosingDetailModalOpen(false)}
+                  className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                >
+                  Tutup
+                </button>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end">
-              <button 
-                onClick={() => setIsClosingDetailModalOpen(false)}
-                className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     )}

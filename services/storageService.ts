@@ -111,6 +111,103 @@ export const saveData = async (data: AppData): Promise<void> => {
   }
 };
 
+export const appendData = async (tableName: string, record: any): Promise<void> => {
+  console.log(`Appending to ${tableName}...`, record);
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({
+        action: 'appendRow',
+        tableName,
+        record
+      }),
+    });
+  } catch (error) {
+    console.error(`Error appending to ${tableName}:`, error);
+  }
+};
+
+export const appendMultiple = async (tableName: string, records: any[]): Promise<void> => {
+  console.log(`Appending multiple to ${tableName}...`, records.length);
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({
+        action: 'appendMultiple',
+        tableName,
+        records
+      }),
+    });
+  } catch (error) {
+    console.error(`Error appending multiple to ${tableName}:`, error);
+  }
+};
+
+export const updateData = async (tableName: string, record: any, idField: string = 'id'): Promise<void> => {
+  console.log(`Updating in ${tableName}...`, record);
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({
+        action: 'updateRow',
+        tableName,
+        record,
+        idField
+      }),
+    });
+  } catch (error) {
+    console.error(`Error updating in ${tableName}:`, error);
+  }
+};
+
+export const deleteData = async (tableName: string, idValue: any, idField: string = 'id'): Promise<void> => {
+  console.log(`Deleting from ${tableName}...`, idValue);
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({
+        action: 'deleteRow',
+        tableName,
+        idValue,
+        idField
+      }),
+    });
+  } catch (error) {
+    console.error(`Error deleting from ${tableName}:`, error);
+  }
+};
+
+export const saveTable = async (tableName: string, data: any[] | any): Promise<void> => {
+  console.log(`Saving table ${tableName} to GAS...`, Array.isArray(data) ? data.length : 'object');
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({
+        action: 'saveTable',
+        tableName,
+        data
+      }),
+    });
+  } catch (error) {
+    console.error(`Error saving table ${tableName}:`, error);
+  }
+};
+
 export const uploadFileToGAS = async (base64Data: string, filename: string, mimeType: string): Promise<string | null> => {
   try {
     const response = await fetch(GAS_URL, {

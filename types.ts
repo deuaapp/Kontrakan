@@ -66,6 +66,7 @@ export interface WalletTransaction {
   amount: number;
   date: string;
   description: string;
+  proofUrl?: string;
   createdAt: string;
 }
 
@@ -80,6 +81,8 @@ export interface BookClosingAllocation {
   saving: number;
   zakat: number;
   dividends: { recipientId: string; recipientName: string; amount: number }[];
+  isManualCash?: boolean;
+  isManualSaving?: boolean;
 }
 
 export interface BookClosing {
