@@ -1424,7 +1424,7 @@ const App: React.FC = () => {
   const handleAddTenant = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedUnit) return;
-    withLoading(() => {
+    withLoading(async () => {
       if (!hasWriteAccessToArea(selectedUnit.area)) {
         showToast('Anda tidak memiliki akses ke wilayah ini', 'error');
         return;
@@ -1446,8 +1446,8 @@ const App: React.FC = () => {
         units: data.units.map(u => u.id === selectedUnit.id ? { ...u, status: UnitStatus.OCCUPIED } : u)
       };
       setData(newData); 
-      appendData('tenants', newTenant);
-      updateData('units', { ...selectedUnit, status: UnitStatus.OCCUPIED });
+      await appendData('tenants', newTenant);
+      await updateData('units', { ...selectedUnit, status: UnitStatus.OCCUPIED });
       setIsAddTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Penyewa berhasil ditambahkan');
       logAction('CREATE', 'Tenant', `Tambah penyewa ${newTenant.name} di unit ${selectedUnit.name}`);
@@ -1463,7 +1463,7 @@ const App: React.FC = () => {
   const handleUpdateTenant = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedTenant) return;
-    withLoading(() => {
+    withLoading(async () => {
       const unit = data.units.find(u => u.id === selectedTenant.unitId);
       if (!unit || !hasWriteAccessToArea(unit.area)) {
         showToast('Anda tidak memiliki akses ke wilayah ini', 'error');
@@ -1476,11 +1476,11 @@ const App: React.FC = () => {
         name: formData.get('name') as string,
         dueDay: Number(formData.get('dueDay')),
         contact: formData.get('contact') as string,
-        documentUrl: uploadedFileBase64 || undefined
+        documentUrl: uploadedFileBase64 || selectedTenant.documentUrl
       };
       const newData = { ...data, tenants: data.tenants.map(t => t.id === selectedTenant.id ? updatedTenant : t) };
       setData(newData); 
-      updateData('tenants', updatedTenant);
+      await updateData('tenants', updatedTenant);
       setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
       logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name}`);
@@ -1497,15 +1497,15 @@ const App: React.FC = () => {
     }
 
     openConfirmModal('Keluarkan penyewa?', () => {
-      withLoading(() => {
+      withLoading(async () => {
         const newData: AppData = {
           ...data,
           tenants: data.tenants.filter(t => t.id !== tenantId),
           units: data.units.map(u => u.id === tenant.unitId ? { ...u, status: UnitStatus.VACANT } : u)
         };
         setData(newData); 
-        deleteData('tenants', tenantId);
-        updateData('units', { ...unit, status: UnitStatus.VACANT });
+        await deleteData('tenants', tenantId);
+        await updateData('units', { ...unit, status: UnitStatus.VACANT });
         showToast('Penyewa berhasil dikeluarkan');
         logAction('DELETE', 'Tenant', `Hapus penyewa ${tenant.name}`);
       });
@@ -1524,14 +1524,14 @@ const App: React.FC = () => {
       showToast('Hanya admin yang dapat menambah wilayah', 'error');
       return;
     }
-    withLoading(() => {
+    withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       const newAreaName = (formData.get('areaName') as string).trim();
       if (!newAreaName) return;
       if (data.areas.includes(newAreaName)) { showToast('Wilayah sudah ada!', 'error'); return; }
       const newData = { ...data, areas: [...data.areas, newAreaName] };
       setData(newData); 
-      saveTable('areas', newData.areas);
+      await saveTable('areas', newData.areas);
       setIsAddAreaModalOpen(false);
       showToast('Wilayah berhasil ditambahkan');
       logAction('CREATE', 'Area', `Tambah wilayah ${newAreaName}`);
@@ -1550,7 +1550,7 @@ const App: React.FC = () => {
       return;
     }
     if (!selectedArea) return;
-    withLoading(() => {
+    withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       const newName = (formData.get('areaName') as string).trim();
       if (!newName || newName === selectedArea) { setIsEditAreaModalOpen(false); return; }
@@ -1560,8 +1560,8 @@ const App: React.FC = () => {
         units: data.units.map(u => u.area === selectedArea ? { ...u, area: newName } : u)
       };
       setData(newData); 
-      saveTable('areas', newData.areas);
-      saveTable('units', newData.units);
+      await saveTable('areas', newData.areas);
+      await saveTable('units', newData.units);
       setIsEditAreaModalOpen(false);
       showToast('Nama wilayah berhasil diperbarui');
       logAction('UPDATE', 'Area', `Update wilayah ${selectedArea} menjadi ${newName}`);
@@ -1575,15 +1575,15 @@ const App: React.FC = () => {
     }
 
     openConfirmModal(`Hapus wilayah "${area}"?`, () => {
-      withLoading(() => {
+      withLoading(async () => {
         const newData = {
           ...data,
           areas: data.areas.filter(a => a !== area),
           units: data.units.map(u => u.area === area ? { ...u, area: '' } : u)
         };
         setData(newData); 
-        saveTable('areas', newData.areas);
-        saveTable('units', newData.units);
+        await saveTable('areas', newData.areas);
+        await saveTable('units', newData.units);
         showToast('Wilayah berhasil dihapus');
         logAction('DELETE', 'Area', `Hapus wilayah ${area}`);
       });
@@ -1594,7 +1594,7 @@ const App: React.FC = () => {
   const handleAddPayment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedUnit) return;
-    withLoading(() => {
+    withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       
       const dateStr = formData.get('date') as string;
@@ -1624,7 +1624,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, payments: [...data.payments, newPayment] };
       setData(newData); 
-      appendData('payments', newPayment);
+      await appendData('payments', newPayment);
       setIsPaymentModalOpen(false); setUploadedFileBase64(null);
       showToast('Pembayaran berhasil ditambahkan');
       logAction('CREATE', 'Payment', `Tambah pembayaran Rp ${newPayment.amount.toLocaleString('id-ID')} untuk ${newPayment.periodCovered}`);
@@ -1640,7 +1640,7 @@ const App: React.FC = () => {
   const handleUpdatePayment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedPayment) return;
-    withLoading(() => {
+    withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       
       const dateStr = formData.get('date') as string;
@@ -1666,7 +1666,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, payments: data.payments.map(p => p.id === selectedPayment.id ? updatedPayment : p) };
       setData(newData); 
-      updateData('payments', updatedPayment);
+      await updateData('payments', updatedPayment);
       setIsEditPaymentModalOpen(false); setSelectedPayment(null); setUploadedFileBase64(null);
       showToast('Data pembayaran berhasil diperbarui');
       logAction('UPDATE', 'Payment', `Update pembayaran Rp ${updatedPayment.amount.toLocaleString('id-ID')}`);
@@ -1683,10 +1683,10 @@ const App: React.FC = () => {
     }
 
     openConfirmModal('Hapus riwayat pembayaran ini?', () => {
-      withLoading(() => {
+      withLoading(async () => {
         const newData = { ...data, payments: data.payments.filter(p => p.id !== paymentId) };
         setData(newData); 
-        deleteData('payments', paymentId);
+        await deleteData('payments', paymentId);
         showToast('Pembayaran berhasil dihapus');
         logAction('DELETE', 'Payment', `Hapus pembayaran`);
       });
@@ -1696,7 +1696,7 @@ const App: React.FC = () => {
   // --- EXPENSE ACTIONS ---
   const handleAddExpense = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    withLoading(() => {
+    withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       
       const dateStr = formData.get('date') as string;
@@ -1727,7 +1727,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, expenses: [...data.expenses, newExpense] };
       setData(newData); 
-      appendData('expenses', newExpense);
+      await appendData('expenses', newExpense);
       setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
       showToast('Pengeluaran berhasil ditambahkan');
       logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.description}: Rp ${newExpense.amount.toLocaleString('id-ID')}`);
@@ -1745,7 +1745,7 @@ const App: React.FC = () => {
   const handleUpdateExpense = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedExpense) return;
-    withLoading(() => {
+    withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       
       const dateStr = formData.get('date') as string;
@@ -1775,7 +1775,7 @@ const App: React.FC = () => {
       };
       const newData = { ...data, expenses: data.expenses.map(ex => ex.id === selectedExpense.id ? updatedExpense : ex) };
       setData(newData); 
-      updateData('expenses', updatedExpense);
+      await updateData('expenses', updatedExpense);
       setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
       logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.description}`);
@@ -1791,10 +1791,10 @@ const App: React.FC = () => {
     }
 
     openConfirmModal('Hapus pengeluaran ini?', () => {
-      withLoading(() => {
+      withLoading(async () => {
         const newData = { ...data, expenses: data.expenses.filter(ex => ex.id !== expenseId) };
         setData(newData); 
-        deleteData('expenses', expenseId);
+        await deleteData('expenses', expenseId);
         showToast('Pengeluaran berhasil dihapus');
         logAction('DELETE', 'Expense', `Hapus pengeluaran`);
       });
@@ -3942,15 +3942,7 @@ const App: React.FC = () => {
           <NavItem active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} label="Transaksi" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} />
           <NavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} label="Laporan" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} />
           <NavItem active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} label="Riwayat" icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-          {currentUser?.role === 'admin' && (
-            <NavItem 
-              active={false} 
-              onClick={() => window.open('https://docs.google.com/spreadsheets/d/1UPTeM5rJKneWzc6dYmS1XUtuVq0MTrCFn3bw29E2mnI/edit?usp=drivesdk', '_blank')} 
-              label="Google Sheet" 
-              icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>} 
-              color="emerald"
-            />
-          )}
+          
         </nav>
         <div className="p-4 border-t border-slate-50 dark:border-slate-800 relative">
           {/* User Menu Popover */}
@@ -4473,6 +4465,15 @@ const App: React.FC = () => {
                                 if (!unit || !hasWriteAccessToArea(unit.area)) return null;
                                 return (
                                   <>
+                                    {t.documentUrl && (
+                                      <button onClick={() => {
+                                        const directUrl = getDirectDriveLink(t.documentUrl!);
+                                        const win = window.open();
+                                        win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
+                                      }} className="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400" title="Lihat Identitas">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
+                                      </button>
+                                    )}
                                     <button onClick={() => handleEditTenantInit(t)} className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
                                     <button onClick={() => handleDeleteTenant(t.id)} className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                   </>
@@ -5015,7 +5016,6 @@ const App: React.FC = () => {
             { id: 'tenants', label: 'Penyewa', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> },
             { id: 'transactions', label: 'Transaksi', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg> },
             { id: 'reports', label: 'Laporan', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
-            ...(currentUser?.role === 'admin' ? [{ id: 'sheets', label: 'Sheet', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> }] : []),
             { id: 'more', label: 'Lainnya', icon: <svg className="w-6 h-6 landscape:w-5 landscape:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg> }
           ].map(tab => (
             <button 
@@ -5535,6 +5535,16 @@ const App: React.FC = () => {
             <button onClick={() => setIsTenantHistoryModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             <div className="flex justify-between items-center mb-4">
                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Riwayat: {selectedTenant.name}</h3>
+               {selectedTenant.documentUrl && (
+                 <button onClick={() => {
+                   const directUrl = getDirectDriveLink(selectedTenant.documentUrl!);
+                   const win = window.open();
+                   win?.document.write('<html><body style="margin:0; display:flex; align-items:center; justify-content:center; background:#000;"><img src="' + directUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>');
+                 }} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
+                   Lihat Identitas
+                 </button>
+               )}
             </div>
             <div className="overflow-x-auto">
                <table className="w-full text-left text-sm">

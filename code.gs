@@ -238,6 +238,19 @@ function doPost(e) {
       }
       
       // Update baris
+      const recordKeys = Object.keys(record);
+      let headerUpdated = false;
+      recordKeys.forEach(key => {
+        if (!headers.includes(key)) {
+          headers.push(key);
+          headerUpdated = true;
+        }
+      });
+      
+      if (headerUpdated) {
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      }
+      
       const row = headers.map(header => {
         let val = record[header];
         if (typeof val === 'object' && val !== null) {
