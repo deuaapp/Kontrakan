@@ -337,7 +337,7 @@ const App: React.FC = () => {
         setEditingWalletTransaction(null);
         setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil diperbarui');
-        logAction('UPDATE', 'Wallet', `Update transaksi ${updatedTx.wallet}: ${updatedTx.description}`);
+        logAction('UPDATE', 'Wallet', `Update transaksi ${updatedTx.wallet === 'zakat' ? 'Zakat' : updatedTx.wallet === 'cash' ? 'Kas' : 'Saving'}: ${updatedTx.description} sejumlah Rp ${updatedTx.amount.toLocaleString('id-ID')}`);
       } else {
         const newTx: WalletTransaction = {
           id: Date.now().toString(),
@@ -355,19 +355,21 @@ const App: React.FC = () => {
         setUploadedFileBase64(null);
         setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil dicatat');
-        logAction('CREATE', 'Wallet', `Tambah transaksi ${newTx.wallet}: ${newTx.description}`);
+        logAction('CREATE', 'Wallet', `Tambah transaksi ${newTx.wallet === 'zakat' ? 'Zakat' : newTx.wallet === 'cash' ? 'Kas' : 'Saving'}: ${newTx.description} sejumlah Rp ${newTx.amount.toLocaleString('id-ID')}`);
       }
     });
   };
 
   const handleDeleteWalletTransaction = (id: string) => {
+    const tx = data.walletTransactions?.find(t => t.id === id);
+    if (!tx) return;
     openConfirmModal('Hapus transaksi dompet ini?', () => {
       withLoading(() => {
         const newData = { ...data, walletTransactions: data.walletTransactions?.filter(t => t.id !== id) || [] };
         setData(newData); 
         deleteData('walletTransactions', id);
         showToast('Transaksi dompet berhasil dihapus');
-        logAction('DELETE', 'Wallet', `Hapus transaksi dompet`);
+        logAction('DELETE', 'Wallet', `Hapus transaksi ${tx.wallet === 'zakat' ? 'Zakat' : tx.wallet === 'cash' ? 'Kas' : 'Saving'}: ${tx.description} sejumlah Rp ${tx.amount.toLocaleString('id-ID')}`);
       });
     });
   };
@@ -755,7 +757,7 @@ const App: React.FC = () => {
 
     setIsConfirmCloseBookModalOpen(false);
     showToast('Tutup buku berhasil! Transaksi periode ini telah di-reset');
-    logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear}`);
+    logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear} dengan total saldo Rp ${totalBalance.toLocaleString('id-ID')}`);
   };
 
   const handleDeleteBookClosing = (id: string) => {
@@ -840,6 +842,8 @@ const App: React.FC = () => {
   };
 
   const handleDeleteRecipient = (id: string) => {
+    const recipient = dividendRecipients.find(r => r.id === id);
+    if (!recipient) return;
     openConfirmModal('Hapus penerima dividen ini?', () => {
       withLoading(() => {
         const updatedRecipients = dividendRecipients.filter(r => r.id !== id);
@@ -853,7 +857,7 @@ const App: React.FC = () => {
           setData(updatedData);
           saveTable('dividendRecipients', updatedRecipients);
           showToast('Penerima dividen berhasil dihapus');
-          logAction('DELETE', 'Recipient', `Hapus penerima dividen`);
+          logAction('DELETE', 'Recipient', `Hapus penerima dividen ${recipient.name} (${recipient.percentage}%)`);
       });
     });
   };
@@ -868,7 +872,7 @@ const App: React.FC = () => {
       setData(updatedData);
       saveTable('settings', { cashPercentage, savingPercentage });
       showToast('Pengaturan berhasil disimpan');
-      logAction('UPDATE', 'Settings', 'Update pengaturan alokasi laba');
+      logAction('UPDATE', 'Settings', `Update pengaturan alokasi laba (Kas: ${cashPercentage}%, Tabungan: ${savingPercentage}%)`);
     });
   };
 
@@ -889,6 +893,21 @@ const App: React.FC = () => {
     const hours = d.getHours().toString().padStart(2, '0');
     const minutes = d.getMinutes().toString().padStart(2, '0');
     return `${day} ${month} ${year}, ${hours}:${minutes}`;
+  };
+
+  const formatPeriod = (period: string) => {
+    if (!period) return '-';
+    if (/^\d{4}-\d{2}$/.test(period)) {
+      const [year, month] = period.split('-');
+      return `${monthNames[parseInt(month) - 1]} ${year}`;
+    }
+    if (period.includes('T') && (period.includes('Z') || period.includes('+') || period.includes('-'))) {
+      const date = new Date(period);
+      if (!isNaN(date.getTime())) {
+        return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+      }
+    }
+    return period;
   };
 
   const getLocalDateString = (dateInput?: string | Date) => {
@@ -964,7 +983,7 @@ const App: React.FC = () => {
     const monthName = monthNames[reportMonth];
     
     // Filter payments by period string match (simple approach based on current data structure)
-    let income = data.payments.filter(p => p.periodCovered.toLowerCase().includes(monthName.toLowerCase()) && p.periodCovered.includes(reportYear.toString()));
+    let income = data.payments.filter(p => formatPeriod(p.periodCovered).toLowerCase().includes(monthName.toLowerCase()) && formatPeriod(p.periodCovered).includes(reportYear.toString()));
     
     // Filter by selected areas if any
     if (reportSelectedAreas.length > 0) {
@@ -1363,7 +1382,7 @@ const App: React.FC = () => {
         setData(newData); 
         deleteData('units', unitId);
         showToast('Unit berhasil dihapus');
-        logAction('DELETE', 'Unit', 'Hapus unit');
+        logAction('DELETE', 'Unit', `Hapus unit ${unit.name} di wilayah ${unit.area}`);
       });
     });
   };
@@ -1390,7 +1409,7 @@ const App: React.FC = () => {
       updateData('units', updatedUnit);
       setIsEditUnitModalOpen(false);
       showToast('Data unit berhasil diperbarui');
-      logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name}`);
+      logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name} di wilayah ${updatedUnit.area}`);
     });
   };
 
@@ -1416,7 +1435,7 @@ const App: React.FC = () => {
       appendData('units', newUnit);
       setIsAddUnitModalOpen(false);
       showToast('Unit baru berhasil ditambahkan');
-      logAction('CREATE', 'Unit', `Tambah unit ${newUnit.name}`);
+      logAction('CREATE', 'Unit', `Tambah unit ${newUnit.name} di wilayah ${newUnit.area}`);
     });
   };
 
@@ -1483,7 +1502,7 @@ const App: React.FC = () => {
       await updateData('tenants', updatedTenant);
       setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
-      logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name}`);
+      logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name} di unit ${data.units.find(u => u.id === updatedTenant.unitId)?.name || '-'}`);
     });
   };
 
@@ -1507,7 +1526,7 @@ const App: React.FC = () => {
         await deleteData('tenants', tenantId);
         await updateData('units', { ...unit, status: UnitStatus.VACANT });
         showToast('Penyewa berhasil dikeluarkan');
-        logAction('DELETE', 'Tenant', `Hapus penyewa ${tenant.name}`);
+        logAction('DELETE', 'Tenant', `Hapus penyewa ${tenant.name} dari unit ${data.units.find(u => u.id === tenant.unitId)?.name || '-'}`);
       });
     });
   };
@@ -1627,7 +1646,7 @@ const App: React.FC = () => {
       await appendData('payments', newPayment);
       setIsPaymentModalOpen(false); setUploadedFileBase64(null);
       showToast('Pembayaran berhasil ditambahkan');
-      logAction('CREATE', 'Payment', `Tambah pembayaran Rp ${newPayment.amount.toLocaleString('id-ID')} untuk ${newPayment.periodCovered}`);
+      logAction('CREATE', 'Payment', `Tambah pembayaran sewa Rp ${newPayment.amount.toLocaleString('id-ID')} untuk periode ${formatPeriod(newPayment.periodCovered)} dari penyewa ${data.tenants.find(t => t.id === newPayment.tenantId)?.name || '-'} di unit ${data.units.find(u => u.id === newPayment.unitId)?.name || '-'}`);
     });
   };
 
@@ -1669,7 +1688,7 @@ const App: React.FC = () => {
       await updateData('payments', updatedPayment);
       setIsEditPaymentModalOpen(false); setSelectedPayment(null); setUploadedFileBase64(null);
       showToast('Data pembayaran berhasil diperbarui');
-      logAction('UPDATE', 'Payment', `Update pembayaran Rp ${updatedPayment.amount.toLocaleString('id-ID')}`);
+      logAction('UPDATE', 'Payment', `Update pembayaran sewa Rp ${updatedPayment.amount.toLocaleString('id-ID')} untuk periode ${formatPeriod(updatedPayment.periodCovered)} dari penyewa ${data.tenants.find(t => t.id === updatedPayment.tenantId)?.name || '-'} di unit ${data.units.find(u => u.id === updatedPayment.unitId)?.name || '-'}`);
     });
   };
 
@@ -1688,7 +1707,7 @@ const App: React.FC = () => {
         setData(newData); 
         await deleteData('payments', paymentId);
         showToast('Pembayaran berhasil dihapus');
-        logAction('DELETE', 'Payment', `Hapus pembayaran`);
+        logAction('DELETE', 'Payment', `Hapus pembayaran sewa Rp ${payment.amount.toLocaleString('id-ID')} untuk periode ${formatPeriod(payment.periodCovered)} dari penyewa ${data.tenants.find(t => t.id === payment.tenantId)?.name || '-'} di unit ${data.units.find(u => u.id === payment.unitId)?.name || '-'}`);
       });
     });
   };
@@ -1730,7 +1749,7 @@ const App: React.FC = () => {
       await appendData('expenses', newExpense);
       setIsAddExpenseModalOpen(false); setUploadedFileBase64(null);
       showToast('Pengeluaran berhasil ditambahkan');
-      logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.description}: Rp ${newExpense.amount.toLocaleString('id-ID')}`);
+      logAction('CREATE', 'Expense', `Tambah pengeluaran ${newExpense.category} (${newExpense.area || 'Semua Wilayah'}): ${newExpense.description} sejumlah Rp ${newExpense.amount.toLocaleString('id-ID')}`);
     });
   };
 
@@ -1778,7 +1797,7 @@ const App: React.FC = () => {
       await updateData('expenses', updatedExpense);
       setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
-      logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.description}`);
+      logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.category} (${updatedExpense.area || 'Semua Wilayah'}): ${updatedExpense.description} sejumlah Rp ${updatedExpense.amount.toLocaleString('id-ID')}`);
     });
   };
 
@@ -1796,7 +1815,7 @@ const App: React.FC = () => {
         setData(newData); 
         await deleteData('expenses', expenseId);
         showToast('Pengeluaran berhasil dihapus');
-        logAction('DELETE', 'Expense', `Hapus pengeluaran`);
+        logAction('DELETE', 'Expense', `Hapus pengeluaran ${expense.category} (${expense.area || 'Semua Wilayah'}): ${expense.description} sejumlah Rp ${expense.amount.toLocaleString('id-ID')}`);
       });
     });
   };
@@ -1837,7 +1856,7 @@ const App: React.FC = () => {
       updateData('otherIncomes', updatedIncome);
       setIsEditOtherIncomeModalOpen(false); setSelectedOtherIncome(null);
       showToast('Data pemasukan lain berhasil diperbarui');
-      logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.description}`);
+      logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.category}: ${updatedIncome.description} sejumlah Rp ${updatedIncome.amount.toLocaleString('id-ID')}`);
     });
   };
 
@@ -1851,7 +1870,7 @@ const App: React.FC = () => {
         setData(newData); 
         deleteData('otherIncomes', incomeId);
         showToast('Pemasukan lain berhasil dihapus');
-        logAction('DELETE', 'OtherIncome', `Hapus pemasukan lain`);
+        logAction('DELETE', 'OtherIncome', `Hapus pemasukan lain ${income.category}: ${income.description} sejumlah Rp ${income.amount.toLocaleString('id-ID')}`);
       });
     });
   };
@@ -3287,7 +3306,7 @@ const App: React.FC = () => {
                   appendData('otherIncomes', newIncome);
                   setIsAddOtherIncomeModalOpen(false);
                   showToast('Pemasukan lain berhasil dicatat');
-                  logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.description}: Rp ${newIncome.amount.toLocaleString('id-ID')}`);
+                  logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.category}: ${newIncome.description} sejumlah Rp ${newIncome.amount.toLocaleString('id-ID')}`);
                 });
               }} className="space-y-4">
                 <div>
@@ -4557,7 +4576,7 @@ const App: React.FC = () => {
                             <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400 text-xs">{p.createdAt ? formatDateTime(p.createdAt) : '-'}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{unit ? `${unit.area} - ${unit.name}` : '-'}</td>
                             <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-700 dark:text-slate-200">{data.tenants.find(t => t.id === p.tenantId)?.name}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{p.periodCovered}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatPeriod(p.periodCovered)}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-slate-600 dark:text-slate-400">{formatDate(p.date)}</td>
                             <td className="px-4 py-3 whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400">Rp {p.amount.toLocaleString('id-ID')}</td>
                             {isTransactionEditor && (
@@ -5132,7 +5151,7 @@ const App: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Periode</label>
-                <input type="text" name="period" defaultValue={selectedPayment.periodCovered} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                <input type="text" name="period" defaultValue={formatPeriod(selectedPayment.periodCovered)} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300"><input type="checkbox" name="isInstallment" defaultChecked={selectedPayment.isInstallment} className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500" /> Cicilan</label>
               <div>
@@ -5404,7 +5423,7 @@ const App: React.FC = () => {
                 appendData('otherIncomes', newIncome);
                 setIsAddOtherIncomeModalOpen(false);
                 showToast('Pemasukan lain berhasil dicatat');
-                logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.description}: Rp ${newIncome.amount.toLocaleString('id-ID')}`);
+                logAction('CREATE', 'OtherIncome', `Tambah pemasukan lain ${newIncome.category}: ${newIncome.description} sejumlah Rp ${newIncome.amount.toLocaleString('id-ID')}`);
               });
             }} className="space-y-4">
               <div>
@@ -5554,7 +5573,7 @@ const App: React.FC = () => {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {data.payments.filter(p => p.tenantId === selectedTenant.id).reverse().map(p => (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="py-3 text-slate-700 dark:text-slate-300">{p.periodCovered}</td>
+                        <td className="py-3 text-slate-700 dark:text-slate-300">{formatPeriod(p.periodCovered)}</td>
                         <td className="py-3 font-bold text-slate-800 dark:text-white">Rp {p.amount.toLocaleString('id-ID')}</td>
                         <td className="py-3 text-right">
                           <button onClick={() => handleDeletePayment(p.id)} className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition-colors">Hapus</button>
