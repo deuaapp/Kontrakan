@@ -12,7 +12,7 @@ import {
   saveTable,
   uploadFileToGAS 
 } from './services/storageService';
-import { AppData, RentalUnit, Tenant, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction, AppLog } from './types';
+import { AppData, RentalUnit, Tenant, TenantHistory, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction, AppLog } from './types';
 import StatCard from './components/StatCard';
 import UnitCard from './components/UnitCard';
 import Dropdown from './components/Dropdown';
@@ -21,6 +21,26 @@ import Logo from './components/Logo';
 import Calculator from './components/Calculator';
 
 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+const getChangesString = (oldObj: any, newObj: any, labels: Record<string, string>) => {
+  const changes: string[] = [];
+  for (const key in labels) {
+    if (oldObj[key] !== newObj[key]) {
+      let oldVal = oldObj[key];
+      let newVal = newObj[key];
+      
+      if (typeof oldVal === 'number') oldVal = oldVal.toLocaleString('id-ID');
+      if (typeof newVal === 'number') newVal = newVal.toLocaleString('id-ID');
+      if (typeof oldVal === 'boolean') oldVal = oldVal ? 'Ya' : 'Tidak';
+      if (typeof newVal === 'boolean') newVal = newVal ? 'Ya' : 'Tidak';
+      if (oldVal === undefined || oldVal === null || oldVal === '') oldVal = '-';
+      if (newVal === undefined || newVal === null || newVal === '') newVal = '-';
+
+      changes.push(`${labels[key]}: ${oldVal} -> ${newVal}`);
+    }
+  }
+  return changes.length > 0 ? ` (${changes.join(', ')})` : '';
+};
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('amg_isLoggedIn') === 'true');
@@ -327,6 +347,16 @@ const App: React.FC = () => {
           description: formData.get('description') as string,
           proofUrl: uploadedFileBase64 || editingWalletTransaction.proofUrl,
         };
+        
+        const changeStr = getChangesString(editingWalletTransaction, updatedTx, {
+          wallet: 'Dompet',
+          type: 'Jenis',
+          amount: 'Jumlah',
+          date: 'Tanggal',
+          description: 'Keterangan',
+          proofUrl: 'Bukti'
+        });
+        
         const newData = { 
           ...data, 
           walletTransactions: data.walletTransactions?.map(t => t.id === updatedTx.id ? updatedTx : t) || [] 
@@ -337,7 +367,7 @@ const App: React.FC = () => {
         setEditingWalletTransaction(null);
         setIsWalletTransactionModalOpen(false);
         showToast('Transaksi dompet berhasil diperbarui');
-        logAction('UPDATE', 'Wallet', `Update transaksi ${updatedTx.wallet === 'zakat' ? 'Zakat' : updatedTx.wallet === 'cash' ? 'Kas' : 'Saving'}: ${updatedTx.description} sejumlah Rp ${updatedTx.amount.toLocaleString('id-ID')}`);
+        logAction('UPDATE', 'Wallet', `Update transaksi ${updatedTx.wallet === 'zakat' ? 'Zakat' : updatedTx.wallet === 'cash' ? 'Kas' : 'Saving'}: ${updatedTx.description} sejumlah Rp ${updatedTx.amount.toLocaleString('id-ID')}${changeStr}`);
       } else {
         const newTx: WalletTransaction = {
           id: Date.now().toString(),
@@ -431,6 +461,9 @@ const App: React.FC = () => {
   const [isEditAreaModalOpen, setIsEditAreaModalOpen] = useState(false);
   const [isEditTenantModalOpen, setIsEditTenantModalOpen] = useState(false);
   const [isTenantHistoryModalOpen, setIsTenantHistoryModalOpen] = useState(false);
+  const [isUnitTenantHistoryModalOpen, setIsUnitTenantHistoryModalOpen] = useState(false);
+  const [selectedHistoryArea, setSelectedHistoryArea] = useState<string>('');
+  const [selectedHistoryUnitId, setSelectedHistoryUnitId] = useState<string>('');
   const [isEditPaymentModalOpen, setIsEditPaymentModalOpen] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [isAddOtherIncomeModalOpen, setIsAddOtherIncomeModalOpen] = useState(false);
@@ -457,7 +490,7 @@ const App: React.FC = () => {
   const [selectedDateInCalendar, setSelectedDateInCalendar] = useState<number | null>(new Date().getDate());
   
   // Sorting state
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Tenant | 'duration', direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Tenant | 'duration' | 'areaUnit', direction: 'asc' | 'desc' } | null>(null);
 
   // File upload state
   const [uploadedFileBase64, setUploadedFileBase64] = useState<string | null>(null);
@@ -970,7 +1003,7 @@ const App: React.FC = () => {
     }, 0);
   }, [data]);
 
-  const handleSort = (key: keyof Tenant | 'duration') => {
+  const handleSort = (key: keyof Tenant | 'duration' | 'areaUnit') => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
@@ -1252,6 +1285,15 @@ const App: React.FC = () => {
              // Duration is inverse of start date (earlier start date = longer duration)
              return sortConfig.direction === 'asc' ? dateB - dateA : dateA - dateB;
         }
+        if (sortConfig.key === 'areaUnit') {
+          const unitA = data.units.find(u => u.id === a.unitId);
+          const unitB = data.units.find(u => u.id === b.unitId);
+          const nameA = unitA ? `${unitA.area} - ${unitA.name}` : '';
+          const nameB = unitB ? `${unitB.area} - ${unitB.name}` : '';
+          if (nameA < nameB) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (nameA > nameB) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        }
         if (a[sortConfig.key] < b[sortConfig.key]) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
@@ -1262,7 +1304,7 @@ const App: React.FC = () => {
       });
     }
     return sortableTenants;
-  }, [data.tenants, sortConfig]);
+  }, [data.tenants, data.units, sortConfig]);
 
   // Helper to get direct link from Google Drive URL
   const getDirectDriveLink = (url: string) => {
@@ -1404,12 +1446,19 @@ const App: React.FC = () => {
         area: area,
         monthlyPrice: Number(formData.get('price')),
       };
+      
+      const changeStr = getChangesString(selectedUnit, updatedUnit, {
+        name: 'Nama',
+        area: 'Wilayah',
+        monthlyPrice: 'Harga'
+      });
+      
       const newData = { ...data, units: data.units.map(u => u.id === selectedUnit.id ? updatedUnit : u) };
       setData(newData); 
       updateData('units', updatedUnit);
       setIsEditUnitModalOpen(false);
       showToast('Data unit berhasil diperbarui');
-      logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name} di wilayah ${updatedUnit.area}`);
+      logAction('UPDATE', 'Unit', `Update unit ${updatedUnit.name} di wilayah ${updatedUnit.area}${changeStr}`);
     });
   };
 
@@ -1497,12 +1546,20 @@ const App: React.FC = () => {
         contact: formData.get('contact') as string,
         documentUrl: uploadedFileBase64 || selectedTenant.documentUrl
       };
+      
+      const changeStr = getChangesString(selectedTenant, updatedTenant, {
+        name: 'Nama',
+        dueDay: 'Tgl Jatuh Tempo',
+        contact: 'Kontak',
+        documentUrl: 'Identitas'
+      });
+      
       const newData = { ...data, tenants: data.tenants.map(t => t.id === selectedTenant.id ? updatedTenant : t) };
       setData(newData); 
       await updateData('tenants', updatedTenant);
       setIsEditTenantModalOpen(false); setUploadedFileBase64(null);
       showToast('Data penyewa berhasil diperbarui');
-      logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name} di unit ${data.units.find(u => u.id === updatedTenant.unitId)?.name || '-'}`);
+      logAction('UPDATE', 'Tenant', `Update penyewa ${updatedTenant.name} di unit ${data.units.find(u => u.id === updatedTenant.unitId)?.name || '-'}${changeStr}`);
     });
   };
 
@@ -1517,13 +1574,19 @@ const App: React.FC = () => {
 
     openConfirmModal('Keluarkan penyewa?', () => {
       withLoading(async () => {
+        const historyRecord: TenantHistory = {
+          ...tenant,
+          moveOutDate: new Date().toISOString()
+        };
         const newData: AppData = {
           ...data,
           tenants: data.tenants.filter(t => t.id !== tenantId),
+          tenantHistory: [...(data.tenantHistory || []), historyRecord],
           units: data.units.map(u => u.id === tenant.unitId ? { ...u, status: UnitStatus.VACANT } : u)
         };
         setData(newData); 
         await deleteData('tenants', tenantId);
+        await appendData('tenantHistory', historyRecord);
         await updateData('units', { ...unit, status: UnitStatus.VACANT });
         showToast('Penyewa berhasil dikeluarkan');
         logAction('DELETE', 'Tenant', `Hapus penyewa ${tenant.name} dari unit ${data.units.find(u => u.id === tenant.unitId)?.name || '-'}`);
@@ -1683,12 +1746,22 @@ const App: React.FC = () => {
         isInstallment: formData.get('isInstallment') === 'on',
         proofUrl: uploadedFileBase64 || selectedPayment.proofUrl
       };
+      
+      const changeStr = getChangesString(selectedPayment, updatedPayment, {
+        amount: 'Jumlah',
+        date: 'Tanggal',
+        periodCovered: 'Periode',
+        notes: 'Catatan',
+        isInstallment: 'Cicilan',
+        proofUrl: 'Bukti'
+      });
+      
       const newData = { ...data, payments: data.payments.map(p => p.id === selectedPayment.id ? updatedPayment : p) };
       setData(newData); 
       await updateData('payments', updatedPayment);
       setIsEditPaymentModalOpen(false); setSelectedPayment(null); setUploadedFileBase64(null);
       showToast('Data pembayaran berhasil diperbarui');
-      logAction('UPDATE', 'Payment', `Update pembayaran sewa Rp ${updatedPayment.amount.toLocaleString('id-ID')} untuk periode ${formatPeriod(updatedPayment.periodCovered)} dari penyewa ${data.tenants.find(t => t.id === updatedPayment.tenantId)?.name || '-'} di unit ${data.units.find(u => u.id === updatedPayment.unitId)?.name || '-'}`);
+      logAction('UPDATE', 'Payment', `Update pembayaran sewa Rp ${updatedPayment.amount.toLocaleString('id-ID')} untuk periode ${formatPeriod(updatedPayment.periodCovered)} dari penyewa ${data.tenants.find(t => t.id === updatedPayment.tenantId)?.name || '-'} di unit ${data.units.find(u => u.id === updatedPayment.unitId)?.name || '-'}${changeStr}`);
     });
   };
 
@@ -1792,12 +1865,22 @@ const App: React.FC = () => {
         area: area || undefined,
         proofUrl: uploadedFileBase64 || selectedExpense.proofUrl
       };
+      
+      const changeStr = getChangesString(selectedExpense, updatedExpense, {
+        description: 'Deskripsi',
+        amount: 'Jumlah',
+        date: 'Tanggal',
+        category: 'Kategori',
+        area: 'Wilayah',
+        proofUrl: 'Bukti'
+      });
+      
       const newData = { ...data, expenses: data.expenses.map(ex => ex.id === selectedExpense.id ? updatedExpense : ex) };
       setData(newData); 
       await updateData('expenses', updatedExpense);
       setIsEditExpenseModalOpen(false); setSelectedExpense(null); setUploadedFileBase64(null);
       showToast('Data pengeluaran berhasil diperbarui');
-      logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.category} (${updatedExpense.area || 'Semua Wilayah'}): ${updatedExpense.description} sejumlah Rp ${updatedExpense.amount.toLocaleString('id-ID')}`);
+      logAction('UPDATE', 'Expense', `Update pengeluaran ${updatedExpense.category} (${updatedExpense.area || 'Semua Wilayah'}): ${updatedExpense.description} sejumlah Rp ${updatedExpense.amount.toLocaleString('id-ID')}${changeStr}`);
     });
   };
 
@@ -1848,6 +1931,15 @@ const App: React.FC = () => {
         allocateToWallet: formData.get('allocateToWallet') === 'on'
       };
       
+      const changeStr = getChangesString(selectedOtherIncome, updatedIncome, {
+        description: 'Deskripsi',
+        amount: 'Jumlah',
+        date: 'Tanggal',
+        category: 'Kategori',
+        notes: 'Catatan',
+        allocateToWallet: 'Masuk Saldo'
+      });
+      
       const newData = { 
         ...data, 
         otherIncomes: (data.otherIncomes || []).map(i => i.id === selectedOtherIncome.id ? updatedIncome : i) 
@@ -1856,7 +1948,7 @@ const App: React.FC = () => {
       updateData('otherIncomes', updatedIncome);
       setIsEditOtherIncomeModalOpen(false); setSelectedOtherIncome(null);
       showToast('Data pemasukan lain berhasil diperbarui');
-      logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.category}: ${updatedIncome.description} sejumlah Rp ${updatedIncome.amount.toLocaleString('id-ID')}`);
+      logAction('UPDATE', 'OtherIncome', `Update pemasukan lain ${updatedIncome.category}: ${updatedIncome.description} sejumlah Rp ${updatedIncome.amount.toLocaleString('id-ID')}${changeStr}`);
     });
   };
 
@@ -4417,8 +4509,19 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'tenants' && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-300 transition-colors duration-300">
-              <div className="overflow-x-auto">
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button onClick={() => {
+                  setSelectedHistoryArea('');
+                  setSelectedHistoryUnitId('');
+                  setIsUnitTenantHistoryModalOpen(true);
+                }} className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Riwayat Penyewa per Unit
+                </button>
+              </div>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-300 transition-colors duration-300">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                     <tr>
@@ -4430,7 +4533,14 @@ const App: React.FC = () => {
                           )}
                         </div>
                       </th>
-                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Wilayah - Unit</th>
+                      <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleSort('areaUnit')}>
+                        <div className="flex items-center gap-1">
+                          Wilayah - Unit
+                          {sortConfig?.key === 'areaUnit' && (
+                            <svg className={`w-3 h-3 ${sortConfig.direction === 'asc' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                          )}
+                        </div>
+                      </th>
                       <th className="px-4 py-3 whitespace-nowrap text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => handleSort('moveInDate')}>
                         <div className="flex items-center gap-1">
                           Tgl Masuk
@@ -4506,6 +4616,7 @@ const App: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
             </div>
           )}
 
@@ -5588,6 +5699,123 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Unit Tenant History Modal */}
+      {isUnitTenantHistoryModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-2xl flex flex-col p-6 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
+            <button onClick={() => {
+              setIsUnitTenantHistoryModalOpen(false);
+              setSelectedHistoryArea('');
+              setSelectedHistoryUnitId('');
+            }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="flex justify-between items-center mb-6">
+               <h3 className="text-xl font-bold text-slate-800 dark:text-white">Riwayat Penyewa per Unit</h3>
+            </div>
+            
+            <div className="mb-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Pilih Wilayah</label>
+                <select 
+                  value={selectedHistoryArea}
+                  onChange={(e) => {
+                    setSelectedHistoryArea(e.target.value);
+                    setSelectedHistoryUnitId(''); // Reset unit when area changes
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                >
+                  <option value="">-- Pilih Wilayah --</option>
+                  {data.areas.map(area => (
+                    <option key={area} value={area}>{area}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedHistoryArea && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Pilih Unit</label>
+                  <select 
+                    value={selectedHistoryUnitId}
+                    onChange={(e) => setSelectedHistoryUnitId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  >
+                    <option value="">-- Pilih Unit --</option>
+                    {data.units.filter(u => u.area === selectedHistoryArea).map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {selectedHistoryUnitId && (
+              <div className="overflow-x-auto max-h-[60vh]">
+                 <table className="w-full text-left text-sm">
+                    <thead className="border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
+                      <tr className="text-slate-500 dark:text-slate-400">
+                        <th className="py-3 px-2">Nama Penyewa</th>
+                        <th className="py-3 px-2">Identitas</th>
+                        <th className="py-3 px-2">Kontak</th>
+                        <th className="py-3 px-2">Tgl Masuk</th>
+                        <th className="py-3 px-2">Tgl Keluar</th>
+                        <th className="py-3 px-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {/* Active Tenant */}
+                      {data.tenants.filter(t => t.unitId === selectedHistoryUnitId).map(t => (
+                        <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="py-3 px-2 font-medium text-slate-800 dark:text-white">{t.name}</td>
+                          <td className="py-3 px-2">
+                            {t.documentUrl ? (
+                              <a href={t.documentUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                                Lihat
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">{t.contact || '-'}</td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">{formatDate(t.moveInDate)}</td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">-</td>
+                          <td className="py-3 px-2"><span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg text-xs font-bold">Aktif</span></td>
+                        </tr>
+                      ))}
+                      {/* Past Tenants */}
+                      {(data.tenantHistory || []).filter(t => t.unitId === selectedHistoryUnitId).sort((a, b) => new Date(b.moveOutDate).getTime() - new Date(a.moveOutDate).getTime()).map(t => (
+                        <tr key={t.id + t.moveOutDate} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="py-3 px-2 font-medium text-slate-800 dark:text-white">{t.name}</td>
+                          <td className="py-3 px-2">
+                            {t.documentUrl ? (
+                              <a href={t.documentUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                                Lihat
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">{t.contact || '-'}</td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">{formatDate(t.moveInDate)}</td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">{formatDate(t.moveOutDate)}</td>
+                          <td className="py-3 px-2"><span className="px-2 py-1 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-lg text-xs font-bold">Keluar</span></td>
+                        </tr>
+                      ))}
+                      {data.tenants.filter(t => t.unitId === selectedHistoryUnitId).length === 0 && (data.tenantHistory || []).filter(t => t.unitId === selectedHistoryUnitId).length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">Belum ada riwayat penyewa untuk unit ini</td>
+                        </tr>
+                      )}
+                    </tbody>
+                 </table>
+              </div>
+            )}
+          </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation Modal */}
       {isConfirmModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
@@ -5889,7 +6117,7 @@ const App: React.FC = () => {
                                   setData(newData); 
                                   updateData('users', updatedUsers[idx], 'username');
                                   showToast(`Wilayah akses ${user.username} diperbarui`);
-                                  logAction('UPDATE', 'User', `Update wilayah akses user ${user.username}`);
+                                  logAction('UPDATE', 'User', `Update wilayah akses user ${user.username} menjadi ${newAreas.join(', ') || 'Semua'}`);
                                 });
                               }}
                               placeholder="Pilih Wilayah"

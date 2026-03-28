@@ -24,6 +24,10 @@ export interface Tenant {
   accumulatedPaidRent?: number; // Total rent paid from closed periods
 }
 
+export interface TenantHistory extends Tenant {
+  moveOutDate: string;
+}
+
 export interface Payment {
   id: string;
   tenantId: string;
@@ -120,6 +124,7 @@ export interface AppLog {
 export interface AppData {
   units: RentalUnit[];
   tenants: Tenant[];
+  tenantHistory?: TenantHistory[];
   payments: Payment[];
   expenses: Expense[];
   otherIncomes?: OtherIncome[];

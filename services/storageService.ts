@@ -16,6 +16,7 @@ const initialData: AppData = {
     { id: 't2', name: 'Siti Aminah', unitId: '2', moveInDate: '2023-11-15', dueDay: 22, contact: '08129876543' },
     { id: 't3', name: 'Rahmat Hidayat', unitId: '4', moveInDate: '2024-01-05', dueDay: 12, contact: '081333444555' },
   ],
+  tenantHistory: [],
   payments: [
     { id: 'p1', tenantId: 't1', unitId: '1', amount: 1200000, date: '2024-01-08', periodCovered: 'Januari 2024', notes: 'Lunas', isInstallment: false, createdAt: '2024-01-08T10:00:00.000Z' },
     { id: 'p2', tenantId: 't2', unitId: '2', amount: 600000, date: '2024-01-22', periodCovered: 'Januari 2024', notes: 'Cicilan 1', isInstallment: true, createdAt: '2024-01-22T14:30:00.000Z' },
@@ -45,6 +46,10 @@ export const loadData = async (): Promise<AppData> => {
     // Migrations
     if (!data.logs) {
       data.logs = [];
+      needsSync = true;
+    }
+    if (!data.tenantHistory) {
+      data.tenantHistory = [];
       needsSync = true;
     }
     if (!data.areas || data.areas.length === 0) {

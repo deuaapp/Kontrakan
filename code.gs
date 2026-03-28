@@ -1,6 +1,6 @@
 // Daftar tabel/sheet yang akan dibuat
 const TABLES = [
-  'units', 'tenants', 'payments', 'expenses', 'otherIncomes', 
+  'units', 'tenants', 'tenantHistory', 'payments', 'expenses', 'otherIncomes', 
   'walletTransactions', 'areas', 'expenseCategories', 'users', 
   'bookClosings', 'dividendRecipients', 'settings', 'logs' // Menambahkan 'logs' agar riwayat aktivitas tersimpan
 ];
