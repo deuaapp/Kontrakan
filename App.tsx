@@ -3815,7 +3815,7 @@ const App: React.FC = () => {
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <button onClick={() => { setIsWalletTransactionModalOpen(false); setEditingWalletTransaction(null); setUploadedFileBase64(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white">{editingWalletTransaction ? 'Edit' : 'Catat'} Transaksi Dompet {selectedWalletForTransaction.toUpperCase()}</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">{editingWalletTransaction ? 'Edit' : 'Catat'} Transaksi Dompet {selectedWalletForTransaction.toLowerCase() === 'cash' ? 'KAS' : selectedWalletForTransaction.toUpperCase()}</h3>
             <form onSubmit={handleSaveWalletTransaction} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Jenis Transaksi</label>
@@ -4908,7 +4908,7 @@ const App: React.FC = () => {
                           setLogsSearchQuery(e.target.value);
                           setLogsPage(1);
                         }}
-                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        className="w-full pl-10 pr-4 py-2 bg-white dark:text-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                       />
                       <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
