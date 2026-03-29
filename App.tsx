@@ -1043,18 +1043,27 @@ const App: React.FC = () => {
     }
     
     // Filter expenses by date and appMode
-    const expenses = data.expenses.filter(e => {
+    let expenses = data.expenses.filter(e => {
       const d = new Date(e.date);
       const matchesDate = d.getMonth() === reportMonth && d.getFullYear() === reportYear;
       if (!matchesDate) return false;
       return appMode === 'accounting' || e.area;
     });
 
+    // Filter expenses by selected areas if any
+    if (reportSelectedAreas.length > 0) {
+      expenses = expenses.filter(e => e.area && reportSelectedAreas.includes(e.area));
+    }
+
     const totalIncome = income.reduce((acc, curr) => acc + curr.amount, 0);
     const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+
+    // Sort by date
+    const sortedIncome = [...income].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sortedExpenses = [...expenses].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    return { income, expenses, totalIncome, totalExpense, net: totalIncome - totalExpense };
-  }, [data, reportMonth, reportYear, reportSelectedAreas]);
+    return { income: sortedIncome, expenses: sortedExpenses, totalIncome, totalExpense, net: totalIncome - totalExpense };
+  }, [data, reportMonth, reportYear, reportSelectedAreas, appMode]);
 
   const handleExportPDF = () => {
     const tenantsWithArrears = data.tenants.map(t => {
@@ -1119,10 +1128,37 @@ const App: React.FC = () => {
 
     finalY = (doc as any).lastAutoTable.finalY + 10;
     
-    doc.setFontSize(12);
-    doc.text(`BERSIH: Rp ${net.toLocaleString('id-ID')}`, 14, finalY);
+    doc.setFontSize(14);
+    doc.setTextColor(79, 70, 229); // Indigo-600
+    doc.text("RINGKASAN", 14, finalY);
+    doc.setTextColor(0, 0, 0);
 
-    finalY += 15;
+    autoTable(doc, {
+      startY: finalY + 4,
+      body: [
+        ['Total Pendapatan', `Rp ${totalIncome.toLocaleString('id-ID')}`],
+        ['Total Pengeluaran', `Rp ${totalExpense.toLocaleString('id-ID')}`],
+        [
+          { content: 'PENDAPATAN BERSIH', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, 
+          { 
+            content: `Rp ${net.toLocaleString('id-ID')}`, 
+            styles: { 
+              fontStyle: 'bold', 
+              halign: 'right', 
+              fillColor: [241, 245, 249],
+              textColor: net >= 0 ? [5, 150, 105] : [225, 29, 72] // Emerald-600 or Rose-600
+            } 
+          }
+        ]
+      ],
+      theme: 'grid',
+      styles: { fontSize: 11 },
+      columnStyles: {
+        1: { halign: 'right' }
+      }
+    });
+
+    finalY = (doc as any).lastAutoTable.finalY + 15;
 
     // Add Arrears Table
     const tenantsWithArrears = data.tenants.map(t => {
@@ -4688,7 +4724,7 @@ const App: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                        {data.payments.slice().reverse().filter(p => {
+                        {data.payments.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).filter(p => {
                           const d = new Date(p.date);
                           const matchesDate = d.getMonth() === transactionFilterMonth && d.getFullYear() === transactionFilterYear;
                           if (!matchesDate) return false;
@@ -4770,7 +4806,7 @@ const App: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                        {data.expenses.slice().reverse().filter(ex => {
+                        {data.expenses.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).filter(ex => {
                           const d = new Date(ex.date);
                           const matchesDate = d.getMonth() === transactionFilterMonth && d.getFullYear() === transactionFilterYear;
                           if (!matchesDate) return false;
