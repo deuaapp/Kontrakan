@@ -121,6 +121,13 @@ export interface AppLog {
   details: string;
 }
 
+export interface Area {
+  id: string;
+  name: string;
+  address?: string;
+  coordinates?: string; // e.g., "-6.123, 106.456"
+}
+
 export interface AppData {
   units: RentalUnit[];
   tenants: Tenant[];
@@ -129,7 +136,7 @@ export interface AppData {
   expenses: Expense[];
   otherIncomes?: OtherIncome[];
   walletTransactions?: WalletTransaction[];
-  areas: string[];
+  areas: Area[];
   expenseCategories: string[];
   users: User[];
   bookClosings?: BookClosing[];
