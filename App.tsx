@@ -790,7 +790,7 @@ const App: React.FC = () => {
 
     setIsConfirmCloseBookModalOpen(false);
     showToast('Tutup buku berhasil! Transaksi periode ini telah di-reset');
-    logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear} dengan total saldo Rp ${totalBalance.toLocaleString('id-ID')}`);
+    logAction('OTHER', 'System', `Tutup buku periode ${monthNames[reportMonth]} ${reportYear} dengan total saldo Rp ${netIncome.toLocaleString('id-ID')}`);
   };
 
   const handleDeleteBookClosing = (id: string) => {
@@ -910,7 +910,14 @@ const App: React.FC = () => {
   };
 
   const tenantsDueOnDay = (day: number) => {
-    return data.tenants.filter(t => t.dueDay === day);
+    return data.tenants.filter(t => {
+      // Jika bulan ini lebih pendek dari tanggal jatuh tempo penyewa, 
+      // maka penyewa dianggap jatuh tempo pada hari terakhir bulan tersebut.
+      if (day === daysInMonth) {
+        return t.dueDay >= day;
+      }
+      return t.dueDay === day;
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -982,9 +989,18 @@ const App: React.FC = () => {
     if (!unit) return 0;
     const moveIn = new Date(tenant.moveInDate);
     const now = new Date();
+    
+    // Hitung selisih bulan
     let months = (now.getFullYear() - moveIn.getFullYear()) * 12;
-    months -= moveIn.getMonth();
-    months += now.getMonth();
+    months += now.getMonth() - moveIn.getMonth();
+    
+    // Periksa apakah tanggal jatuh tempo bulan ini sudah lewat
+    // Jika bulan ini lebih pendek dari dueDay, gunakan hari terakhir bulan ini
+    const effectiveDueDay = Math.min(tenant.dueDay, daysInMonth);
+    if (now.getDate() < effectiveDueDay) {
+      months -= 1;
+    }
+    
     const totalExpected = (Math.max(0, months) + 1) * unit.monthlyPrice;
     
     const currentPayments = data.payments
@@ -1953,6 +1969,8 @@ const App: React.FC = () => {
   };
 
   const handleDeleteOtherIncome = (incomeId: string) => {
+    const income = (data.otherIncomes || []).find(i => i.id === incomeId);
+    if (!income) return;
     openConfirmModal('Hapus pemasukan lain ini?', () => {
       withLoading(() => {
         const newData = { 
@@ -5395,7 +5413,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tgl Jatuh Tempo</label>
-                  <input type="number" name="dueDay" placeholder="Tgl Tempo" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                  <input type="number" name="dueDay" placeholder="Tgl Tempo" min="1" max="31" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                 </div>
               </div>
               <div>
@@ -5455,7 +5473,7 @@ const App: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tgl Jatuh Tempo</label>
-                <input type="number" name="dueDay" defaultValue={selectedTenant.dueDay} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                <input type="number" name="dueDay" defaultValue={selectedTenant.dueDay} min="1" max="31" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kontak / No. HP</label>
