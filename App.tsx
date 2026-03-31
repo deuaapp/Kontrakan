@@ -12,7 +12,7 @@ import {
   saveTable,
   uploadFileToGAS 
 } from './services/storageService';
-import { AppData, RentalUnit, Tenant, TenantHistory, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction, AppLog } from './types';
+import { AppData, RentalUnit, Tenant, TenantHistory, Payment, UnitStatus, Expense, User, BookClosing, DividendRecipient, OtherIncome, WalletTransaction, AppLog, Area } from './types';
 import StatCard from './components/StatCard';
 import UnitCard from './components/UnitCard';
 import Dropdown from './components/Dropdown';
@@ -482,7 +482,7 @@ const App: React.FC = () => {
 
   // Active selections
   const [selectedUnit, setSelectedUnit] = useState<RentalUnit | null>(null);
-  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
@@ -1666,9 +1666,19 @@ const App: React.FC = () => {
     withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       const newAreaName = (formData.get('areaName') as string).trim();
+      const newAreaAddress = (formData.get('areaAddress') as string).trim();
+      const newGoogleMapsLink = (formData.get('googleMapsLink') as string).trim();
       if (!newAreaName) return;
-      if (data.areas.includes(newAreaName)) { showToast('Wilayah sudah ada!', 'error'); return; }
-      const newData = { ...data, areas: [...data.areas, newAreaName] };
+      if (data.areas.some(a => a.name === newAreaName)) { showToast('Wilayah sudah ada!', 'error'); return; }
+      
+      const newArea: Area = {
+        id: `area-${Date.now()}`,
+        name: newAreaName,
+        address: newAreaAddress,
+        googleMapsLink: newGoogleMapsLink
+      };
+      
+      const newData = { ...data, areas: [...data.areas, newArea] };
       setData(newData); 
       await saveTable('areas', newData.areas);
       setIsAddAreaModalOpen(false);
@@ -1677,7 +1687,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleEditAreaInit = (area: string) => {
+  const handleEditAreaInit = (area: Area) => {
     setSelectedArea(area);
     setIsEditAreaModalOpen(true);
   };
@@ -1692,39 +1702,50 @@ const App: React.FC = () => {
     withLoading(async () => {
       const formData = new FormData(e.currentTarget);
       const newName = (formData.get('areaName') as string).trim();
-      if (!newName || newName === selectedArea) { setIsEditAreaModalOpen(false); return; }
+      const newAddress = (formData.get('areaAddress') as string).trim();
+      const newGoogleMapsLink = (formData.get('googleMapsLink') as string).trim();
+      
+      if (!newName) { setIsEditAreaModalOpen(false); return; }
+      
+      const updatedArea: Area = {
+        ...selectedArea,
+        name: newName,
+        address: newAddress,
+        googleMapsLink: newGoogleMapsLink
+      };
+
       const newData = {
         ...data,
-        areas: data.areas.map(a => a === selectedArea ? newName : a),
-        units: data.units.map(u => u.area === selectedArea ? { ...u, area: newName } : u)
+        areas: data.areas.map(a => a.id === selectedArea.id ? updatedArea : a),
+        units: data.units.map(u => u.area === selectedArea.name ? { ...u, area: newName } : u)
       };
       setData(newData); 
       await saveTable('areas', newData.areas);
       await saveTable('units', newData.units);
       setIsEditAreaModalOpen(false);
-      showToast('Nama wilayah berhasil diperbarui');
-      logAction('UPDATE', 'Area', `Update wilayah ${selectedArea} menjadi ${newName}`);
+      showToast('Wilayah berhasil diperbarui');
+      logAction('UPDATE', 'Area', `Update wilayah ${selectedArea.name} menjadi ${newName}`);
     });
   };
 
-  const handleDeleteArea = (area: string) => {
+  const handleDeleteArea = (area: Area) => {
     if (currentUser?.role !== 'admin') {
       showToast('Hanya admin yang dapat menghapus wilayah', 'error');
       return;
     }
 
-    openConfirmModal(`Hapus wilayah "${area}"?`, () => {
+    openConfirmModal(`Hapus wilayah "${area.name}"?`, () => {
       withLoading(async () => {
         const newData = {
           ...data,
-          areas: data.areas.filter(a => a !== area),
-          units: data.units.map(u => u.area === area ? { ...u, area: '' } : u)
+          areas: data.areas.filter(a => a.id !== area.id),
+          units: data.units.map(u => u.area === area.name ? { ...u, area: '' } : u)
         };
         setData(newData); 
         await saveTable('areas', newData.areas);
         await saveTable('units', newData.units);
         showToast('Wilayah berhasil dihapus');
-        logAction('DELETE', 'Area', `Hapus wilayah ${area}`);
+        logAction('DELETE', 'Area', `Hapus wilayah ${area.name}`);
       });
     });
   };
@@ -3522,7 +3543,7 @@ const App: React.FC = () => {
                     name="area" 
                     value={formAddExpenseArea} 
                     onChange={(val) => setFormAddExpenseArea(String(val))} 
-                    options={data.areas.map(area => ({ label: area, value: area }))} 
+                    options={data.areas.map(area => ({ label: area.name, value: area.name }))} 
                     placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                   />
                 </div>
@@ -3954,7 +3975,7 @@ const App: React.FC = () => {
                   name="area" 
                   value={formEditExpenseArea} 
                   onChange={(val) => setFormEditExpenseArea(String(val))} 
-                  options={data.areas.filter(area => hasWriteAccessToArea(area)).map(area => ({ label: area, value: area }))} 
+                  options={data.areas.filter(area => hasWriteAccessToArea(area.name)).map(area => ({ label: area.name, value: area.name }))} 
                   placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                 />
               </div>
@@ -4304,15 +4325,15 @@ const App: React.FC = () => {
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Status Unit per Wilayah</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {data.areas.map(area => {
-                    const unitsInArea = data.units.filter(u => u.area === area);
+                    const unitsInArea = data.units.filter(u => u.area === area.name);
                     const total = unitsInArea.length;
                     const occupied = unitsInArea.filter(u => u.status === UnitStatus.OCCUPIED).length;
                     const vacant = total - occupied;
                     
                     return (
-                      <div key={area} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
+                      <div key={area.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
                         <div className="flex justify-between items-start mb-4">
-                           <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">{area}</h4>
+                           <h4 className="font-bold text-slate-700 dark:text-slate-200 text-lg">{area.name}</h4>
                            <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold px-2 py-1 rounded-lg">{total} Unit</span>
                         </div>
                         
@@ -4436,7 +4457,7 @@ const App: React.FC = () => {
                      Collapse All
                    </button>
                    <button 
-                     onClick={() => setExpandedAreas(data.areas)}
+                     onClick={() => setExpandedAreas(data.areas.map(a => a.name))}
                      className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
                    >
                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -4446,18 +4467,18 @@ const App: React.FC = () => {
                </div>
                
                {data.areas.map(area => {
-                 const areaUnits = data.units.filter(u => u.area === area);
+                 const areaUnits = data.units.filter(u => u.area === area.name);
                  const areaTenants = data.tenants.filter(t => areaUnits.some(u => u.id === t.unitId));
                  const totalArrears = areaTenants.reduce((acc, t) => {
                    const unit = areaUnits.find(u => u.id === t.unitId);
                    return acc + (unit ? calculateArrears(t, unit) : 0);
                  }, 0);
-                 const isExpanded = expandedAreas.includes(area);
+                 const isExpanded = expandedAreas.includes(area.name);
 
                  return (
-                   <div key={area} className="space-y-4">
+                   <div key={area.id} className="space-y-4">
                      <div 
-                       onClick={() => toggleAreaExpansion(area)}
+                       onClick={() => toggleAreaExpansion(area.name)}
                        className={`group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
                          isExpanded 
                            ? 'bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-900/50 shadow-md' 
@@ -4473,7 +4494,24 @@ const App: React.FC = () => {
                             </svg>
                           </div>
                           <div>
-                            <h4 className="text-lg font-bold text-slate-800 dark:text-white">{area}</h4>
+                            <h4 className="text-lg font-bold text-slate-800 dark:text-white">{area.name}</h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {area.address && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{area.address}</p>
+                              )}
+                              {area.googleMapsLink && (
+                                <a 
+                                  href={area.googleMapsLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 shrink-0"
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                  Maps
+                                </a>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                 {areaUnits.length} Unit
@@ -4510,20 +4548,20 @@ const App: React.FC = () => {
                           <div className="flex items-center gap-2">
                             {currentUser?.role === 'admin' && (
                               <div className="flex gap-1 border-l border-slate-200 dark:border-slate-700 pl-4" onClick={e => e.stopPropagation()}>
-                                <button 
-                                  onClick={() => handleEditAreaInit(area)} 
-                                  className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all"
-                                  title="Edit Wilayah"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteArea(area)} 
-                                  className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
-                                  title="Hapus Wilayah"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                </button>
+                                  <button 
+                                   onClick={() => handleEditAreaInit(area)} 
+                                   className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-all"
+                                   title="Edit Wilayah"
+                                 >
+                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                 </button>
+                                 <button 
+                                   onClick={() => handleDeleteArea(area)} 
+                                   className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                                   title="Hapus Wilayah"
+                                 >
+                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                 </button>
                               </div>
                             )}
                             
@@ -4555,7 +4593,7 @@ const App: React.FC = () => {
                               onEditTenant={handleEditTenantInit} 
                               onDeleteTenant={handleDeleteTenant} 
                               userRole={currentUser?.role}
-                              canEdit={hasWriteAccessToArea(area)}
+                              canEdit={hasWriteAccessToArea(area.name)}
                              />
                            );
                          })}
@@ -4702,7 +4740,7 @@ const App: React.FC = () => {
                   </div>
                   <MultiSelectDropdown
                     value={transactionSelectedAreas}
-                    options={data.areas.map(a => ({ label: a, value: a }))}
+                    options={data.areas.map(a => ({ label: a.name, value: a.name }))}
                     onChange={setTransactionSelectedAreas}
                     placeholder="Semua Wilayah"
                     className="w-full md:w-auto md:min-w-[150px]"
@@ -5051,7 +5089,7 @@ const App: React.FC = () => {
                   </div>
                   <MultiSelectDropdown
                     value={reportSelectedAreas}
-                    options={data.areas.map(a => ({ label: a, value: a }))}
+                    options={data.areas.map(a => ({ label: a.name, value: a.name }))}
                     onChange={setReportSelectedAreas}
                     placeholder="Semua Wilayah"
                     className="w-full lg:w-auto md:min-w-[200px] lg:min-w-[250px] text-sm md:text-base"
@@ -5459,7 +5497,7 @@ const App: React.FC = () => {
                   name="area" 
                   value={formAddUnitArea} 
                   onChange={(val) => setFormAddUnitArea(String(val))} 
-                  options={data.areas.map(a => ({ label: a, value: a }))} 
+                  options={data.areas.map(a => ({ label: a.name, value: a.name }))} 
                   placeholder="Pilih Wilayah"
                 />
               </div>
@@ -5493,7 +5531,7 @@ const App: React.FC = () => {
                   name="area" 
                   value={formEditUnitArea} 
                   onChange={(val) => setFormEditUnitArea(String(val))} 
-                  options={data.areas.map(a => ({ label: a, value: a }))} 
+                  options={data.areas.map(a => ({ label: a.name, value: a.name }))} 
                   placeholder="Pilih Wilayah"
                 />
               </div>
@@ -5762,6 +5800,14 @@ const App: React.FC = () => {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Wilayah</label>
                 <input type="text" name="areaName" placeholder="Nama Wilayah" required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alamat Wilayah</label>
+                <textarea name="areaAddress" placeholder="Alamat Lengkap" rows={3} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Link Google Maps</label>
+                <input type="url" name="googleMapsLink" placeholder="https://maps.app.goo.gl/..." className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+              </div>
               <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Simpan</button>
               <button type="button" onClick={() => setIsAddAreaModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
             </form>
@@ -5776,11 +5822,19 @@ const App: React.FC = () => {
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <button onClick={() => setIsEditAreaModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Wilayah: {selectedArea}</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Wilayah: {selectedArea.name}</h3>
             <form onSubmit={handleUpdateArea} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Wilayah</label>
-                <input type="text" name="areaName" defaultValue={selectedArea} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                <input type="text" name="areaName" defaultValue={selectedArea.name} required className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alamat Wilayah</label>
+                <textarea name="areaAddress" defaultValue={selectedArea.address} placeholder="Alamat Lengkap" rows={3} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Link Google Maps</label>
+                <input type="url" name="googleMapsLink" defaultValue={selectedArea.googleMapsLink} placeholder="https://maps.app.goo.gl/..." className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
               <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">Update</button>
               <button type="button" onClick={() => setIsEditAreaModalOpen(false)} className="w-full text-slate-400 dark:text-slate-500 py-2 hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Batal</button>
@@ -5859,7 +5913,7 @@ const App: React.FC = () => {
                 >
                   <option value="">-- Pilih Wilayah --</option>
                   {data.areas.map(area => (
-                    <option key={area} value={area}>{area}</option>
+                    <option key={area.id} value={area.name}>{area.name}</option>
                   ))}
                 </select>
               </div>
@@ -6002,7 +6056,7 @@ const App: React.FC = () => {
                   name="area" 
                   value={formAddExpenseArea} 
                   onChange={(val) => setFormAddExpenseArea(String(val))} 
-                  options={data.areas.filter(area => hasWriteAccessToArea(area)).map(area => ({ label: area, value: area }))} 
+                  options={data.areas.filter(area => hasWriteAccessToArea(area.name)).map(area => ({ label: area.name, value: area.name }))} 
                   placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                 />
               </div>
@@ -6086,7 +6140,7 @@ const App: React.FC = () => {
                   name="area" 
                   value={formEditExpenseArea} 
                   onChange={(val) => setFormEditExpenseArea(String(val))} 
-                  options={data.areas.filter(area => hasWriteAccessToArea(area)).map(area => ({ label: area, value: area }))} 
+                  options={data.areas.filter(area => hasWriteAccessToArea(area.name)).map(area => ({ label: area.name, value: area.name }))} 
                   placeholder={`Pilih Wilayah ${(currentUser?.role === 'admin' || currentUser?.role === 'accountant') ? '(Opsional)' : ''}`}
                 />
               </div>
@@ -6241,7 +6295,7 @@ const App: React.FC = () => {
                           ) : (
                             <MultiSelectDropdown
                               value={user.allowedAreas || []}
-                              options={data.areas.map(a => ({ label: a, value: a }))}
+                              options={data.areas.map(a => ({ label: a.name, value: a.name }))}
                               onChange={(newAreas) => {
                                 withLoading(() => {
                                   const updatedUsers = [...data.users];

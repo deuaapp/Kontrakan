@@ -61,8 +61,8 @@ function doGet(e) {
           if (!isEmptyRow) rows.push(rowData);
         }
         
-        // Untuk array string sederhana (areas, expenseCategories)
-        if (['areas', 'expenseCategories'].includes(tableName)) {
+        // Untuk array string sederhana (expenseCategories)
+        if (['expenseCategories'].includes(tableName)) {
            result[tableName] = rows.map(r => r.name || r.value || Object.values(r)[0]);
         } 
         // Untuk settings (object tunggal)

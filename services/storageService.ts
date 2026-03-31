@@ -22,7 +22,10 @@ const initialData: AppData = {
     { id: 'p2', tenantId: 't2', unitId: '2', amount: 600000, date: '2024-01-22', periodCovered: 'Januari 2024', notes: 'Cicilan 1', isInstallment: true, createdAt: '2024-01-22T14:30:00.000Z' },
   ],
   expenses: [],
-  areas: ['Blok Barat', 'Blok Timur'],
+  areas: [
+    { id: 'area-1', name: 'Blok Barat', address: '' },
+    { id: 'area-2', name: 'Blok Timur', address: '' }
+  ],
   expenseCategories: ['Listrik', 'Air', 'Perbaikan', 'Kebersihan', 'Lainnya'],
   users: [
     { username: 'admin', pin: '1234', role: 'admin' }
@@ -53,7 +56,30 @@ export const loadData = async (): Promise<AppData> => {
       needsSync = true;
     }
     if (!data.areas || data.areas.length === 0) {
-      data.areas = Array.from(new Set((data.units || []).map((u: RentalUnit) => u.area)));
+      const uniqueAreaNames = Array.from(new Set((data.units || []).map((u: RentalUnit) => u.area)));
+      data.areas = uniqueAreaNames.map((name, index) => ({
+        id: `area-${Date.now()}-${index}`,
+        name: name,
+        address: ''
+      }));
+      needsSync = true;
+    } else if (data.areas.length > 0 && (typeof data.areas[0] === 'string' || !data.areas[0].id)) {
+      // Migration from string[] or incomplete Area[] to full Area[]
+      data.areas = data.areas.map((item: any, index: number) => {
+        if (typeof item === 'string') {
+          return {
+            id: `area-${Date.now()}-${index}`,
+            name: item,
+            address: ''
+          };
+        }
+        return {
+          id: item.id || `area-${Date.now()}-${index}`,
+          name: item.name || '',
+          address: item.address || '',
+          googleMapsLink: item.googleMapsLink || ''
+        };
+      });
       needsSync = true;
     }
     if (!data.expenses) {

@@ -125,7 +125,7 @@ export interface Area {
   id: string;
   name: string;
   address?: string;
-  coordinates?: string; // e.g., "-6.123, 106.456"
+  googleMapsLink?: string;
 }
 
 export interface AppData {
