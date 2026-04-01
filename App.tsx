@@ -551,6 +551,91 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'info' }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Handle Back Navigation for Modals
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // Check if any modal is open
+      const anyModalOpen = 
+        isPaymentModalOpen || isAddUnitModalOpen || isAddAreaModalOpen || isAddTenantModalOpen ||
+        isEditUnitModalOpen || isEditAreaModalOpen || isEditTenantModalOpen || isTenantHistoryModalOpen ||
+        isUnitTenantHistoryModalOpen || isEditPaymentModalOpen || isAddExpenseModalOpen ||
+        isAddOtherIncomeModalOpen || isEditOtherIncomeModalOpen || isEditExpenseModalOpen ||
+        isAddCategoryModalOpen || isAddUserModalOpen || isUserManagementModalOpen || isChangePinModalOpen ||
+        isConfirmCloseBookModalOpen || isWalletTransactionModalOpen || isConfirmModalOpen ||
+        isAlertModalOpen || isClosingDetailModalOpen || isEditAllocationModalOpen || isExportNoteModalOpen;
+
+      if (anyModalOpen) {
+        // Prevent default back behavior (which might close the app)
+        event.preventDefault();
+        
+        // Close all modals
+        setIsPaymentModalOpen(false);
+        setIsAddUnitModalOpen(false);
+        setIsAddAreaModalOpen(false);
+        setIsAddTenantModalOpen(false);
+        setIsEditUnitModalOpen(false);
+        setIsEditAreaModalOpen(false);
+        setIsEditTenantModalOpen(false);
+        setIsTenantHistoryModalOpen(false);
+        setIsUnitTenantHistoryModalOpen(false);
+        setIsEditPaymentModalOpen(false);
+        setIsAddExpenseModalOpen(false);
+        setIsAddOtherIncomeModalOpen(false);
+        setIsEditOtherIncomeModalOpen(false);
+        setIsEditExpenseModalOpen(false);
+        setIsAddCategoryModalOpen(false);
+        setIsAddUserModalOpen(false);
+        setIsUserManagementModalOpen(false);
+        setIsChangePinModalOpen(false);
+        setIsConfirmCloseBookModalOpen(false);
+        setIsWalletTransactionModalOpen(false);
+        setIsConfirmModalOpen(false);
+        setIsAlertModalOpen(false);
+        setIsClosingDetailModalOpen(false);
+        setIsEditAllocationModalOpen(false);
+        setIsExportNoteModalOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [
+    isPaymentModalOpen, isAddUnitModalOpen, isAddAreaModalOpen, isAddTenantModalOpen,
+    isEditUnitModalOpen, isEditAreaModalOpen, isEditTenantModalOpen, isTenantHistoryModalOpen,
+    isUnitTenantHistoryModalOpen, isEditPaymentModalOpen, isAddExpenseModalOpen,
+    isAddOtherIncomeModalOpen, isEditOtherIncomeModalOpen, isEditExpenseModalOpen,
+    isAddCategoryModalOpen, isAddUserModalOpen, isUserManagementModalOpen, isChangePinModalOpen,
+    isConfirmCloseBookModalOpen, isWalletTransactionModalOpen, isConfirmModalOpen,
+    isAlertModalOpen, isClosingDetailModalOpen, isEditAllocationModalOpen, isExportNoteModalOpen
+  ]);
+
+  // Push state when a modal opens to create a history entry
+  useEffect(() => {
+    const anyModalOpen = 
+      isPaymentModalOpen || isAddUnitModalOpen || isAddAreaModalOpen || isAddTenantModalOpen ||
+      isEditUnitModalOpen || isEditAreaModalOpen || isEditTenantModalOpen || isTenantHistoryModalOpen ||
+      isUnitTenantHistoryModalOpen || isEditPaymentModalOpen || isAddExpenseModalOpen ||
+      isAddOtherIncomeModalOpen || isEditOtherIncomeModalOpen || isEditExpenseModalOpen ||
+      isAddCategoryModalOpen || isAddUserModalOpen || isUserManagementModalOpen || isChangePinModalOpen ||
+      isConfirmCloseBookModalOpen || isWalletTransactionModalOpen || isConfirmModalOpen ||
+      isAlertModalOpen || isClosingDetailModalOpen || isEditAllocationModalOpen || isExportNoteModalOpen;
+
+    if (anyModalOpen) {
+      window.history.pushState({ modalOpen: true }, '');
+    }
+  }, [
+    isPaymentModalOpen, isAddUnitModalOpen, isAddAreaModalOpen, isAddTenantModalOpen,
+    isEditUnitModalOpen, isEditAreaModalOpen, isEditTenantModalOpen, isTenantHistoryModalOpen,
+    isUnitTenantHistoryModalOpen, isEditPaymentModalOpen, isAddExpenseModalOpen,
+    isAddOtherIncomeModalOpen, isEditOtherIncomeModalOpen, isEditExpenseModalOpen,
+    isAddCategoryModalOpen, isAddUserModalOpen, isUserManagementModalOpen, isChangePinModalOpen,
+    isConfirmCloseBookModalOpen, isWalletTransactionModalOpen, isConfirmModalOpen,
+    isAlertModalOpen, isClosingDetailModalOpen, isEditAllocationModalOpen, isExportNoteModalOpen
+  ]);
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts(prev => [...prev, { id, message, type }]);
