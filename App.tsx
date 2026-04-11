@@ -73,8 +73,7 @@ const App: React.FC = () => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true;
     if (currentUser.role === 'viewer') return false;
-    if (currentUser.role === 'accountant') return false; // Or true? Accountant usually doesn't edit operational data, just views or manages accounting. Let's say false for operational data.
-    // role is 'user'
+    // Both 'user' and 'accountant' roles use allowedAreas
     if (!currentUser.allowedAreas || currentUser.allowedAreas.length === 0) return false;
     return currentUser.allowedAreas.includes(area);
   };
@@ -98,7 +97,7 @@ const App: React.FC = () => {
   });
 
   const isAccountingEditor = currentUser?.role === 'admin' || currentUser?.role === 'accountant';
-  const isTransactionEditor = currentUser?.role === 'admin' || currentUser?.role === 'user';
+  const isTransactionEditor = currentUser?.role === 'admin' || currentUser?.role === 'user' || currentUser?.role === 'accountant';
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'units' | 'tenants' | 'transactions' | 'reports' | 'logs'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -3272,7 +3271,7 @@ const App: React.FC = () => {
 
         {/* Alert Modal */}
         {isAlertModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
               <button onClick={() => setIsAlertModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -3298,7 +3297,7 @@ const App: React.FC = () => {
 
         {/* Confirmation Modal */}
         {isConfirmModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
               <button onClick={() => setIsConfirmModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -6090,7 +6089,7 @@ const App: React.FC = () => {
 
       {/* Confirmation Modal */}
       {isConfirmModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl animate-in zoom-in-95 duration-200 relative border border-slate-200 dark:border-slate-800 transition-colors duration-300">
             <button onClick={() => setIsConfirmModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
